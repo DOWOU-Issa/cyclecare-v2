@@ -1,0 +1,62 @@
+{
+  "name": "cyclecare",
+  "version": "1.0.0",
+  "description": "Application de suivi du cycle menstruel",
+  "private": true,
+  "author": {
+    "name": "CycleCare",
+    "email": "contact@cyclecare.app"
+  },
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/cli": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/local-notifications": "^5.0.8"
+  },
+  "build": {
+    "appId": "com.cyclecare.app",
+    "productName": "CycleCare",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "index.html",
+      "css/**",
+      "js/**",
+      "electron/**",
+      "node_modules/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": [
+        "French"
+      ],
+      "language": "1036"
+    }
+  }
+}

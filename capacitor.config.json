@@ -1,0 +1,23 @@
+{
+  "appId":    "com.cyclecare.app",
+  "appName":  "CycleCare",
+  "webDir":   "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor":   "#8b2252",
+    "buildOptions": {
+      "keystorePath":     "cyclecare.keystore",
+      "keystoreAlias":    "cyclecare"
+    }
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor":    "#8b2252",
+      "showSpinner":        false
+    }
+  }
+}
