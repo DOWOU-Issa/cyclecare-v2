@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy www to GitHub Pages
 
 on:
   push:
@@ -10,15 +10,8 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,16 +20,10 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
       
-      - name: Copy www files for deployment
-        run: |
-          mkdir -p deploy
-          cp -r www/* deploy/
-      
-      - name: Upload artifact
+      - name: Upload www folder as artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './deploy'
+          path: www
       
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
