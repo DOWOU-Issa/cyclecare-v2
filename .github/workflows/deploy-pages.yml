@@ -1,4 +1,4 @@
-name: Sync www to gh-pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -6,36 +6,37 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  sync:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Sync www to gh-pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Copy www files for deployment
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Get www files from main
-          git checkout main
-          
-          # Create/update gh-pages branch
-          if git show-ref --verify --quiet refs/heads/gh-pages; then
-            git checkout gh-pages
-            git rm -rf . || true
-          else
-            git checkout --orphan gh-pages
-            git rm -rf .
-          fi
-          
-          # Copy www files to root
-          cp -r www/* ./
-          
-          # Commit and push
-          git add .
-          git commit -m "Sync www folder to gh-pages" || echo "No changes to commit"
-          git push origin gh-pages --force
+          mkdir -p deploy
+          cp -r www/* deploy/
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './deploy'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
