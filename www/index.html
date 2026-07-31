@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#8b2252">
+  <meta name="description" content="CycleCare ò€” Application de suivi du cycle menstruel">
+  <title>CycleCare</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <div id="app">
+    <div id="splash" class="splash">
+      <div class="splash-inner">
+        <i class="ti ti-heart-filled splash-icon"></i>
+        <div class="splash-name">CycleCare</div>
+        <div class="splash-loader"></div>
+      </div>
+    </div>
+    <div id="view"></div>
+    <div id="modal-root"></div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <!-- Supabase (doit Ãªtre chargÃ© en premier) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Application ò€” ordre d'inclusion critique -->
+  <script src="js/supabase-config.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/cycle.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/bot.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/modals.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/screens.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
