@@ -52,3 +52,4 @@ desktop.ini
 *.tmp
 *.temp
 .cache/
+deploy/
