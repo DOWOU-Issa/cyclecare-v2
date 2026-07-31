@@ -52,11 +52,7 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerLanguages": [
-        "French"
-      ],
-      "language": "1036"
+      "allowToChangeInstallationDirectory": true
     }
   }
 }
