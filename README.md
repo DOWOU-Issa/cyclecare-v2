@@ -10,10 +10,11 @@ Retrouvez les dernières versions prêtes à l'emploi de l'application :
 
 | Plateforme | Format | Lien de téléchargement |
 |---|---|---|
-| **Windows** | `.exe` | [Télécharger pour Windows](https://github.com/DOWOU-Issa/cyclecare-v2/releases/latest/download/cyclecare.exe) |
+| **Windows** | `.zip` | [Télécharger pour Windows](https://github.com/DOWOU-Issa/cyclecare-v2/releases/latest/download/win-unpacked.zip) |
 | **Android** | `.apk` | [Télécharger pour Android](https://github.com/DOWOU-Issa/cyclecare-v2/releases/latest/download/app-debug.apk) |
 
-> **Note :** L'APK Android est actuellement en version `debug`. Pour une installation sur mobile, vous devrez peut-être autoriser l'installation d'applications de sources inconnues.
+> **Note Windows :** Décompressez le fichier `.zip` et lancez `CycleCare.exe` dans le dossier `win-unpacked/`.
+> **Note Android :** L'APK est actuellement en version `debug`. Pour une installation sur mobile, vous devrez peut-être autoriser l'installation d'applications de sources inconnues.
 
 ---
 
@@ -60,11 +61,14 @@ npm install
 # Lancer en mode développement
 npm start
 
-# Construire l'installateur Windows (.exe)
+# Construire l'application Windows
 npm run build:win
 ```
 
-Le fichier `.exe` sera dans `dist-electron/`.
+Les fichiers de build seront dans `dist-electron/` :
+- `win-unpacked.zip` : Archive portable à décompresser (recommandée pour le déploiement)
+- `win-unpacked/` : Dossier contenant l'exécutable `CycleCare.exe` et ses dépendances
+- `cyclecare-1.0.0-x64.nsis.7z` : Archive de l'installateur NSIS
 
 ---
 
@@ -111,29 +115,53 @@ Dans Android Studio :
 
 ```
 cyclecare/
-├── index.html                  Point d'entrée unique
+├── index.html                  Point d'entrée unique (SPA)
 ├── css/
-│   └── main.css                Styles (responsive desktop + mobile)
+│   └── main.css                Styles responsive (desktop + mobile)
 ├── js/
-│   ├── supabase-config.js      Connexion Supabase
-│   ├── config.js               Données (zones, médicaments, conseils)
-│   ├── storage.js              LocalStorage + sync Supabase
-│   ├── cycle.js                Moteur de calcul du cycle
-│   ├── router.js               Navigation et mise en page
-│   ├── modals.js               Modales de saisie
-│   ├── auth.js                 Authentification Supabase
-│   ├── dashboard.js            Tableau de bord
-│   ├── calendar.js             Calendrier mensuel
-│   ├── screens.js              Journal, médicaments, conseils, paramètres
-│   └── main.js                 Initialisation de l'application
-├── supabase/
-│   └── schema.sql              Script SQL à exécuter dans Supabase
+│   ├── supabase-config.js      Configuration connexion Supabase
+│   ├── config.js               Données statiques (zones, médicaments, conseils)
+│   ├── storage.js              Gestion LocalStorage + synchronisation Supabase
+│   ├── cycle.js                Moteur de calcul du cycle menstruel
+│   ├── notifications.js       Système de notifications locales
+│   ├── bot.js                  Assistant IA Gemini via Edge Function
+│   ├── router.js               Navigation et layout (sidebar desktop/topbar mobile)
+│   ├── modals.js               Gestion des modales de saisie
+│   ├── onboarding.js           Parcours d'intégration premier utilisateur
+│   ├── auth.js                 Authentification Supabase (login/inscription)
+│   ├── dashboard.js            Tableau de bord et indicateurs
+│   ├── calendar.js             Calendrier mensuel interactif
+│   ├── screens.js              Écrans : journal, médicaments, conseils, paramètres
+│   └── main.js                 Initialisation et orchestration de l'application
 ├── electron/
-│   └── main.js                 Application Windows (Electron)
-├── capacitor.config.json       Configuration Android (Capacitor)
-├── package.json                Dépendances npm
-└── README.md                   Ce fichier
+│   └── main.js                 Processus principal pour build Windows
+├── android/                    Projet Android natif (généré par Capacitor)
+│   ├── app/                    Application Android
+│   └── build.gradle            Configuration Gradle
+├── capacitor.config.json       Configuration multi-plateforme (Capacitor)
+├── package.json                Dépendances npm et scripts de build
+└── README.md                   Documentation du projet
 ```
+
+## Architecture technique
+
+### Frontend (JavaScript vanilla)
+- **Single Page Application (SPA)** sans framework moderne
+- **Architecture modulaire** : chaque fichier JS gère un domaine fonctionnel
+- **Stockage local** : LocalStorage pour les données utilisateur (offline-first)
+- **Synchronisation** : Sync automatique avec Supabase quand connecté
+- **Responsive design** : Layout adaptatif desktop/mobile via CSS media queries
+
+### Backend (Supabase)
+- **Authentification** : Supabase Auth (email/password)
+- **Base de données** : PostgreSQL via Supabase
+- **Edge Functions** : Proxy sécurisé pour l'API Gemini (assistant IA)
+- **Real-time** : Synchronisation des données entre appareils
+
+### Multi-plateforme
+- **Web** : Déploiement statique sur GitHub Pages
+- **Windows** : Electron pour application desktop
+- **Android** : Capacitor pour application mobile native
 
 ---
 
