@@ -12,19 +12,30 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: main
       
-      - name: Sync www files to gh-pages
+      - name: Sync www to gh-pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin gh-pages
-          git checkout gh-pages
-          git checkout main -- www/
+          
+          # Get www files from main
+          git checkout main
+          
+          # Create/update gh-pages branch
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git checkout gh-pages
+            git rm -rf . || true
+          else
+            git checkout --orphan gh-pages
+            git rm -rf .
+          fi
+          
+          # Copy www files to root
           cp -r www/* ./
+          
+          # Commit and push
           git add .
           git commit -m "Sync www folder to gh-pages" || echo "No changes to commit"
-          git push origin gh-pages
+          git push origin gh-pages --force
