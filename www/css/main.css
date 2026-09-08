@@ -245,6 +245,61 @@ body {
     transition: outline 0.15s ease;
   }
   
+  /* Améliorations accessibilité - Support clavier */
+  [tabindex="-1"] {
+    outline: none;
+  }
+  
+  /* Focus visible pour navigation clavier */
+  :focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+  }
+  
+  /* ARIA labels pour lecteurs d'écran */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  /* Mode contraste élevé */
+  @media (prefers-contrast: high) {
+    :root {
+      --primary: #8b2252;
+      --bg: #ffffff;
+      --text: #000000;
+      --text-2: #333333;
+      --text-3: #666666;
+      --border: #000000;
+      --border-mid: #333333;
+    }
+    
+    .btn {
+      border: 2px solid #000000;
+    }
+    
+    .btn:hover {
+      background: #f0f0f0;
+    }
+  }
+  
+  /* Réduire les animations pour les utilisateurs sensibles */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  
   /* Meilleure visibilité des éléments interactifs au survol */
   .btn:hover, .nav-tab:hover, .item-action:hover {
     transform: translateY(-1px);
@@ -774,6 +829,39 @@ input[type=range] { width: 100%; accent-color: var(--primary); }
 .toast-err      { background: #7a1212; color: #fff; }
 .toast-info     { background: var(--primary); color: #fff; }
 .toast-warn     { background: #6b4800; color: #fff; }
+
+/* =================== OFFLINE INDICATOR =================== */
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #7a1212;
+  color: #fff;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+}
+
+.offline-indicator.hidden {
+  transform: translateY(-100%);
+}
+
+.offline-indicator.visible {
+  transform: translateY(0);
+}
+
+.offline-indicator i {
+  font-size: 16px;
+}
 
 /* =================== EMPTY STATES =================== */
 .empty { text-align: center; padding: 28px 16px; color: var(--text-3); }

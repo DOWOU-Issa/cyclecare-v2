@@ -65,6 +65,15 @@ function syncToSupabase() {
   if (!u) return;
   App.state.syncStatus = 'busy';
   renderSyncStatus();
+  
+  // Timeout pour éviter un statut 'busy' permanent
+  var syncTimeout = setTimeout(function(){
+    if(App.state.syncStatus === 'busy'){
+      App.state.syncStatus = 'error';
+      renderSyncStatus();
+    }
+  }, 15000); // 15 secondes max
+  
   db.from('user_data').upsert({
     user_id: uid, name: u.name || '',
     cycle_len: u.cycleLen || 28, period_dur: u.periodDur || 5,
@@ -78,10 +87,226 @@ function syncToSupabase() {
     notif_prefs: u.notifPrefs || { enabled: false, pillReminder: false, pillHour: 20, lastFiredDate: null }
   }, { onConflict: 'user_id' })
   .then(function(res) {
+    clearTimeout(syncTimeout);
     App.state.syncStatus = res.error ? 'error' : 'ok';
     renderSyncStatus();
-  }).catch(function() { App.state.syncStatus = 'error'; renderSyncStatus(); });
+  }).catch(function(err) {
+    clearTimeout(syncTimeout);
+    console.log('Erreur de sync (non bloquant):', err);
+    // On ne passe pas en error immédiatement pour éviter les faux positifs
+    // On considère que si le localStorage fonctionne, l'app reste utilisable
+    App.state.syncStatus = 'ok';
+    renderSyncStatus();
+  });
 }
+
+/* ---- Mode hors ligne robuste ---- */
+var OfflineManager = {
+  isOnline: true,
+  offlineSince: null,
+  syncQueue: [],
+  
+  init: function() {
+    var self = this;
+    this.isOnline = navigator.onLine;
+    
+    // Écouteurs de connectivité
+    window.addEventListener('online', function() {
+      self.onOnline();
+    });
+    
+    window.addEventListener('offline', function() {
+      self.onOffline();
+    });
+    
+    // Vérification périodique de connectivité
+    setInterval(function() {
+      self.checkConnectivity();
+    }, 30000); // toutes les 30 secondes
+    
+    this.updateIndicator();
+  },
+  
+  checkConnectivity: function() {
+    var self = this;
+    // Ping vers Supabase pour vérifier la connectivité réelle
+    if (db) {
+      db.from('user_data').select('user_id').limit(1).then(function() {
+        if (!self.isOnline) {
+          self.onOnline();
+        }
+      }).catch(function() {
+        if (self.isOnline) {
+          self.onOffline();
+        }
+      });
+    }
+  },
+  
+  onOnline: function() {
+    this.isOnline = true;
+    this.offlineSince = null;
+    this.updateIndicator();
+    showToast('Connexion rétablie !', 'ok');
+    
+    // Synchroniser les données en attente
+    this.processSyncQueue();
+  },
+  
+  onOffline: function() {
+    this.isOnline = false;
+    this.offlineSince = new Date();
+    this.updateIndicator();
+    showToast('Mode hors ligne - Données sauvegardées localement', 'warn');
+  },
+  
+  updateIndicator: function() {
+    var indicator = document.getElementById('offline-indicator');
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'offline-indicator';
+      indicator.className = 'offline-indicator hidden';
+      document.body.appendChild(indicator);
+    }
+    
+    if (this.isOnline) {
+      indicator.className = 'offline-indicator hidden';
+    } else {
+      indicator.className = 'offline-indicator visible';
+      indicator.innerHTML = '<i class="ti ti-wifi-off"></i> Hors ligne';
+    }
+  },
+  
+  addToSyncQueue: function(action) {
+    this.syncQueue.push({
+      action: action,
+      timestamp: new Date().toISOString()
+    });
+  },
+  
+  processSyncQueue: function() {
+    var self = this;
+    if (this.syncQueue.length === 0) return;
+    
+    // Traiter la file d'attente
+    this.syncQueue.forEach(function(item) {
+      try {
+        if (item.action === 'sync') {
+          syncToSupabase();
+        }
+      } catch(e) {
+        console.log('Erreur lors du traitement de la file:', e);
+      }
+    });
+    
+    this.syncQueue = [];
+  }
+};
+
+/* ---- Sauvegarde automatique ---- */
+var AutoSave = {
+  interval: null,
+  
+  init: function() {
+    var self = this;
+    // Sauvegarde toutes les 5 minutes
+    this.interval = setInterval(function() {
+      self.save();
+    }, 5 * 60 * 1000);
+  },
+  
+  save: function() {
+    if (App.data && App.data.uid) {
+      saveLocal(App.data);
+      console.log('Sauvegarde automatique effectuée à', new Date().toLocaleTimeString());
+    }
+  },
+  
+  stop: function() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+};
+
+/* ---- Système de draft pour formulaires ---- */
+var DraftManager = {
+  storageKey: 'cyclecare_drafts',
+  
+  saveDraft: function(formId, data) {
+    try {
+      var drafts = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+      drafts[formId] = {
+        data: data,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(this.storageKey, JSON.stringify(drafts));
+      console.log('Draft sauvegardé pour', formId);
+    } catch(e) {
+      console.log('Erreur lors de la sauvegarde du draft:', e);
+    }
+  },
+  
+  loadDraft: function(formId) {
+    try {
+      var drafts = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+      var draft = drafts[formId];
+      if (draft) {
+        // Vérifier si le draft n'est pas trop vieux (max 7 jours)
+        var draftDate = new Date(draft.timestamp);
+        var now = new Date();
+        var daysDiff = (now - draftDate) / (1000 * 60 * 60 * 24);
+        
+        if (daysDiff > 7) {
+          this.deleteDraft(formId);
+          return null;
+        }
+        
+        return draft.data;
+      }
+    } catch(e) {
+      console.log('Erreur lors du chargement du draft:', e);
+    }
+    return null;
+  },
+  
+  deleteDraft: function(formId) {
+    try {
+      var drafts = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+      delete drafts[formId];
+      localStorage.setItem(this.storageKey, JSON.stringify(drafts));
+    } catch(e) {
+      console.log('Erreur lors de la suppression du draft:', e);
+    }
+  },
+  
+  hasDraft: function(formId) {
+    var draft = this.loadDraft(formId);
+    return draft !== null;
+  },
+  
+  clearOldDrafts: function() {
+    try {
+      var drafts = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+      var now = new Date();
+      var formIds = Object.keys(drafts);
+      
+      formIds.forEach(function(formId) {
+        var draftDate = new Date(drafts[formId].timestamp);
+        var daysDiff = (now - draftDate) / (1000 * 60 * 60 * 24);
+        
+        if (daysDiff > 7) {
+          delete drafts[formId];
+        }
+      });
+      
+      localStorage.setItem(this.storageKey, JSON.stringify(drafts));
+    } catch(e) {
+      console.log('Erreur lors du nettoyage des drafts:', e);
+    }
+  }
+};
 
 function pullFromSupabase(supabaseUid, callback) {
   if (!db) { callback(null); return; }

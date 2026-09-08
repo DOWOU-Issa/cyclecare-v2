@@ -44,6 +44,22 @@ function hideSplash() {
 /* ---- Initialisation ---- */
 async function init() {
   App.data = loadLocal();
+  
+  // Initialiser le mode hors ligne robuste
+  if (typeof OfflineManager !== 'undefined' && OfflineManager.init) {
+    OfflineManager.init();
+  }
+  
+  // Initialiser la sauvegarde automatique
+  if (typeof AutoSave !== 'undefined' && AutoSave.init) {
+    AutoSave.init();
+  }
+  
+  // Nettoyer les vieux drafts au démarrage
+  if (typeof DraftManager !== 'undefined' && DraftManager.clearOldDrafts) {
+    DraftManager.clearOldDrafts();
+  }
+  
   if (typeof Notif !== 'undefined' && Notif.requestStartupPermission) {
     Notif.requestStartupPermission().catch(function() {});
   }
