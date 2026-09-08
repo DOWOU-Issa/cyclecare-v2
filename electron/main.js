@@ -21,6 +21,10 @@ function createWindow() {
       nodeIntegration:    false,
       contextIsolation:   true,
       enableRemoteModule: false,
+      // Activer le support tactile et les gestes
+      scrollBounce: true,
+      // Permettre le zoom avec la molette
+      zoomFactor: 1.0,
     },
     show: false,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -28,6 +32,18 @@ function createWindow() {
 
   /* Charger l'application web */
   win.loadFile(path.join(__dirname, '..', 'index.html'));
+
+  /* Activer le zoom et le scroll après chargement */
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.setZoomLevel(0);
+    win.webContents.setVisualZoomLevelLimits(1, 3);
+    
+    // Injecter du CSS pour forcer le scroll avec la molette
+    win.webContents.executeJavaScript(`
+      document.body.style.overflow = 'auto';
+      document.body.style.overscrollBehavior = 'auto';
+    `);
+  });
 
   /* Afficher la fenêtre seulement quand elle est prête */
   win.once('ready-to-show', () => win.show());

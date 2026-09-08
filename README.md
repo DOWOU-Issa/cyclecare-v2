@@ -163,7 +163,7 @@ cyclecare/
 - **Windows** : Electron pour application desktop
 - **Android** : Capacitor pour application mobile native
 
----
+vin.exe---
 
 ## Algorithme du cycle
 

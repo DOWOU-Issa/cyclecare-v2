@@ -37,7 +37,18 @@
       "css/**",
       "js/**",
       "electron/**",
-      "node_modules/**"
+      "node_modules/**",
+      "assets/**"
+    ],
+    "extraResources": [
+      {
+        "from": "css",
+        "to": "css"
+      },
+      {
+        "from": "js",
+        "to": "js"
+      }
     ],
     "win": {
       "target": [

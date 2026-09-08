@@ -2,18 +2,14 @@
 node_modules/
 package-lock.json
 
+# Dossier de développement JS (doublon de www/js)
+js/
+
 # Build Electron
 dist-electron/
 
 # Build Android
-android/.gradle/
-android/app/build/
-android/app/release/
-android/app/debug/
-android/local.properties
-android/.idea/
-android/.DS_Store
-android/*.iml
+android/
 
 # Capacitor
  capacitor.config.local.json
@@ -53,3 +49,4 @@ desktop.ini
 *.temp
 .cache/
 deploy/
+supabase-gemini-proxy-index.ts

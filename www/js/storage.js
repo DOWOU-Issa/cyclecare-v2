@@ -70,6 +70,11 @@ function syncToSupabase() {
     cycle_len: u.cycleLen || 28, period_dur: u.periodDur || 5,
     periods: u.periods || [], rapports: u.rapports || [],
     symptoms: u.symptoms || [], medications: u.medications || [],
+    moods: u.moods || [], energies: u.energies || [],
+    temperatures: u.temperatures || [], weights: u.weights || [],
+    thoughts: u.thoughts || [], discharge: u.discharge || [],
+    period_delays: u.periodDelays || [],
+    dark_mode: u.darkMode || false,
     notif_prefs: u.notifPrefs || { enabled: false, pillReminder: false, pillHour: 20, lastFiredDate: null }
   }, { onConflict: 'user_id' })
   .then(function(res) {
@@ -153,11 +158,19 @@ function newUser(name, email, supabaseUid) {
     periodDur: 5,
     avatarColor: '#8b2252',
     onboardingDone: false,
+    darkMode: false, /* Préférence de thème */
     notifPrefs: { enabled: false, pillReminder: false, pillHour: 20, lastFiredDate: null },
     periods: [],
     rapports: [],
     symptoms: [],
     medications: [],
+    moods: [], /* Suivi de l'humeur */
+    energies: [], /* Suivi de l'énergie */
+    temperatures: [], /* Suivi de la température basale */
+    weights: [], /* Suivi du poids */
+    thoughts: [], /* Journal de pensées */
+    discharge: [], /* Suivi des pertes vaginales */
+    periodDelays: [], /* Historique des retards de règles */
     createdAt: todayStr()
   };
 }

@@ -12,7 +12,7 @@ function renderCalendrier() {
   var mStr  = year + '-' + String(month+1).padStart(2,'0');
 
   /* Collecte des événements */
-  var periodDays={}, rapportDays={}, medDays={}, symDays={};
+  var periodDays={}, rapportDays={}, medDays={}, symDays={}, tempDays={}, weightDays={}, thoughtDays={}, dischargeDays={};
   if (u) {
     (u.periods||[]).forEach(function(p) {
       if (!p.start) return;
@@ -23,6 +23,10 @@ function renderCalendrier() {
     (u.rapports||[]).filter(function(r){ return r.date&&r.date.startsWith(mStr)&&!r.protected; }).forEach(function(r){ rapportDays[r.date]=true; });
     (u.medications||[]).filter(function(m){ return m.date&&m.date.startsWith(mStr); }).forEach(function(m){ medDays[m.date]=true; });
     (u.symptoms||[]).filter(function(s){ return s.date&&s.date.startsWith(mStr); }).forEach(function(s){ symDays[s.date]=true; });
+    (u.temperatures||[]).filter(function(t){ return t.date&&t.date.startsWith(mStr); }).forEach(function(t){ tempDays[t.date]=true; });
+    (u.weights||[]).filter(function(w){ return w.date&&w.date.startsWith(mStr); }).forEach(function(w){ weightDays[w.date]=true; });
+    (u.thoughts||[]).filter(function(th){ return th.date&&th.date.startsWith(mStr); }).forEach(function(th){ thoughtDays[th.date]=true; });
+    (u.discharge||[]).filter(function(d){ return d.date&&d.date.startsWith(mStr); }).forEach(function(d){ dischargeDays[d.date]=true; });
   }
 
   /* En-tête */
@@ -52,6 +56,10 @@ function renderCalendrier() {
     if (rapportDays[ds]) dots+='<div class="edot edot-r"></div>';
     if (medDays[ds])     dots+='<div class="edot edot-m"></div>';
     if (symDays[ds])     dots+='<div class="edot edot-s"></div>';
+    if (tempDays[ds])    dots+='<div class="edot edot-t"></div>';
+    if (weightDays[ds])   dots+='<div class="edot edot-w"></div>';
+    if (thoughtDays[ds])  dots+='<div class="edot edot-th"></div>';
+    if (dischargeDays[ds]) dots+='<div class="edot edot-d"></div>';
     html+='<div class="cal-day '+calCls+(isT?' today':'')+'">'+d
       +(dots?'<div class="edots">'+dots+'</div>':'')+'</div>';
   }
@@ -71,6 +79,10 @@ function renderCalendrier() {
     + '<div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#1a7a4a;flex-shrink:0;"></div>Rapport (non protégé)</div>'
     + '<div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#6c3483;flex-shrink:0;"></div>Médicament</div>'
     + '<div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#e67e22;flex-shrink:0;"></div>Symptôme</div>'
+    + '<div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#e74c3c;flex-shrink:0;"></div>Température</div>'
+    + '<div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#9b59b6;flex-shrink:0;"></div>Poids</div>'
+    + '<div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#f39c12;flex-shrink:0;"></div>Pensée</div>'
+    + '<div class="leg-item"><div style="width:8px;height:8px;border-radius:50%;background:#3498db;flex-shrink:0;"></div>Pertes</div>'
     + '<div class="leg-item"><div style="box-shadow:inset 0 0 0 2px var(--primary);width:14px;height:14px;border-radius:4px;flex-shrink:0;"></div>Aujourd\'hui</div>'
     + '</div></div>';
 

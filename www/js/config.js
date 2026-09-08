@@ -155,6 +155,118 @@ var SYMPTOM_OPTIONS = [
   'Douleurs dos', 'Envies alimentaires', 'Insomnie', 'Vertiges'
 ];
 
+/* ---------- OPTIONS HUMEUR ---------- */
+var MOOD_OPTIONS = [
+  { val:1, lbl:'Très triste', icon:'ti-mood-sad', color:'#922b21' },
+  { val:2, lbl:'Triste', icon:'ti-mood-sad', color:'#b35000' },
+  { val:3, lbl:'Morose', icon:'ti-mood-neutral', color:'#7f8c8d' },
+  { val:4, lbl:'Neutre', icon:'ti-mood-neutral', color:'#566573' },
+  { val:5, lbl:'Calme', icon:'ti-mood-smile', color:'#27ae60' },
+  { val:6, lbl:'Bien', icon:'ti-mood-smile', color:'#2ecc71' },
+  { val:7, lbl:'Heureuse', icon:'ti-mood-happy', color:'#1abc9c' },
+  { val:8, lbl:'Très heureuse', icon:'ti-mood-happy', color:'#16a085' },
+  { val:9, lbl:'Euphorique', icon:'ti-mood-crazy-happy', color:'#8e44ad' },
+  { val:10, lbl:'Au top!', icon:'ti-mood-crazy-happy', color:'#9b59b6' }
+];
+
+/* ---------- OPTIONS ÉNERGIE ---------- */
+var ENERGY_OPTIONS = [
+  { val:1, lbl:'Épuisée', icon:'ti-battery-off', color:'#922b21' },
+  { val:2, lbl:'Très fatiguée', icon:'ti-battery-1', color:'#b35000' },
+  { val:3, lbl:'Fatiguée', icon:'ti-battery-2', color:'#7f8c8d' },
+  { val:4, lbl:'Un peu fatiguée', icon:'ti-battery-3', color:'#566573' },
+  { val:5, lbl:'Normale', icon:'ti-battery-4', color:'#27ae60' },
+  { val:6, lbl:'Énergique', icon:'ti-battery-charging', color:'#2ecc71' },
+  { val:7, lbl:'Très énergique', icon:'ti-battery-charging', color:'#1abc9c' },
+  { val:8, lbl:'Full énergie', icon:'ti-battery-filled', color:'#16a085' }
+];
+
+/* ---------- TEMPÉRATURE BASALE ---------- */
+var TEMP_TIME_OPTIONS = [
+  { val:'06:00', lbl:'6h00' },
+  { val:'06:30', lbl:'6h30' },
+  { val:'07:00', lbl:'7h00' },
+  { val:'07:30', lbl:'7h30' },
+  { val:'08:00', lbl:'8h00' }
+];
+
+/* ---------- ARTICLES SANTÉ ---------- */
+var HEALTH_ARTICLES = [
+  {
+    id: 'diet-period',
+    title: 'Aliments recommandés pendant les règles',
+    category: 'nutrition',
+    phase: 'period',
+    content: 'Pendant vos règles, privilégiez les aliments riches en fer comme les épinards, les lentilles et le rouge maigre. Les aliments riches en magnésium (noix, graines, chocolat noir) peuvent aider à réduire les crampes. Évitez l\'excès de sel et de caféine qui peuvent aggraver les symptômes.'
+  },
+  {
+    id: 'sleep-hygiene',
+    title: 'Améliorer votre sommeil pendant le cycle',
+    category: 'bien-être',
+    phase: 'all',
+    content: 'La qualité du sommeil peut varier selon votre cycle. Pendant la phase lutéale (avant les règles), maintenez une routine de sommeil régulière, évitez les écrans avant de dormir et essayez des techniques de relaxation comme la méditation ou le yoga doux.'
+  },
+  {
+    id: 'stress-management',
+    title: 'Gérer le stress cyclique',
+    category: 'bien-être',
+    phase: 'all',
+    content: 'Le stress peut affecter votre cycle menstruel. Pratiquez des activités qui vous aident à vous détendre : marche en nature, lecture, musique apaisante. La respiration profonde pendant 5 minutes peut réduire significativement le niveau de stress.'
+  },
+  {
+    id: 'exercise-safe',
+    title: 'Exercices recommandés après les règles',
+    category: 'sport',
+    phase: 'safe1',
+    content: 'La phase après les règles est idéale pour l\'exercice physique. Vos niveaux d\'énergie sont généralement plus élevés. C\'est le bon moment pour la course, la natation, ou des séances de renforcement musculaire plus intenses.'
+  },
+  {
+    id: 'exercise-caution',
+    title: 'Exercices légers avant l\'ovulation',
+    category: 'sport',
+    phase: 'caution',
+    content: 'Pendant la phase d\'avertissement, privilégiez des exercices modérés comme la marche rapide, le yoga ou le Pilates. Écoutez votre corps et adaptez l\'intensité selon votre niveau d\'énergie.'
+  },
+  {
+    id: 'ovulation-tracking',
+    title: 'Comprendre et suivre l\'ovulation',
+    category: 'éducation',
+    phase: 'danger',
+    content: 'L\'ovulation se produit généralement au milieu du cycle. Les signes incluent une augmentation de la température basale, des pertes vaginales type "blanc d\'œuf", et parfois une légère douleur abdominale. Suivre ces signes peut vous aider à comprendre votre cycle.'
+  },
+  {
+    id: 'pms-tips',
+    title: 'Conseils pour le syndrome prémenstruel',
+    category: 'bien-être',
+    phase: 'safe2',
+    content: 'Pour réduire les symptômes du SPM, limitez la consommation de sel et de sucre, faites de l\'exercice modéré, et assurez-vous de bien dormir. Les suppléments de calcium et de magnésium peuvent également aider selon certaines études.'
+  },
+  {
+    id: 'cramp-relief',
+    title: 'Soulager naturellement les crampes',
+    category: 'santé',
+    phase: 'period',
+    content: 'Les crampes peuvent être soulagées par l\'application de chaleur (bouillotte), le massage abdominal doux, et certains exercices d\'étirement. Les thés à base de camomille ou de gingembre peuvent également apporter un soulagement naturel.'
+  }
+];
+
+function getDailyTip() {
+  var lp = getLastPeriod();
+  var cl = getCycleLen();
+  var today = todayStr();
+  var zone = lp ? getZone(today, lp.start, cl) : null;
+  
+  var phaseArticles = HEALTH_ARTICLES.filter(function(a) {
+    return a.phase === 'all' || a.phase === zone;
+  });
+  
+  if (phaseArticles.length === 0) phaseArticles = HEALTH_ARTICLES;
+  
+  var dayOfYear = new Date().getDay();
+  var index = dayOfYear % phaseArticles.length;
+  return phaseArticles[index];
+}
+
 /* ---------- FLUX MENSTRUEL ---------- */
 var FLOW_OPTIONS = [
   { val:'tres_leger',    lbl:'Très léger (spotting)' },

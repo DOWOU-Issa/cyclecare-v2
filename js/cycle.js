@@ -163,3 +163,69 @@ function computeCycleReliability() {
   }
   return { level: level, cycleCount: lens.length, avgLen: Math.round(avg), stdDev: stdDev, label: label, desc: desc };
 }
+
+/* =============================================
+   HISTORIQUE DES RETARDS DE RÈGLES
+   =============================================
+   Enregistre et analyse les retards de règles pour
+   détecter les patterns d'irrégularité.
+   ============================================= */
+function recordPeriodDelay(expectedDate, actualDate) {
+  var u = getUser();
+  if (!u) return;
+  
+  var delay = diffDays(expectedDate, actualDate);
+  if (delay <= 0) return; /* Pas de retard */
+  
+  u.periodDelays = u.periodDelays || [];
+  u.periodDelays.push({
+    expected: expectedDate,
+    actual: actualDate,
+    delay: delay,
+    recordedAt: todayStr()
+  });
+  
+  /* Garder seulement les 12 derniers retards */
+  if (u.periodDelays.length > 12) {
+    u.periodDelays = u.periodDelays.slice(-12);
+  }
+  
+  updateUser(function(u) { return u; });
+}
+
+function getPeriodDelays() {
+  var u = getUser();
+  if (!u || !u.periodDelays) return [];
+  return u.periodDelays.slice().sort(function(a, b) {
+    return b.actual.localeCompare(a.actual);
+  });
+}
+
+function getAverageDelay() {
+  var delays = getPeriodDelays();
+  if (!delays.length) return null;
+  var total = delays.reduce(function(sum, d) { return sum + d.delay; }, 0);
+  return Math.round(total / delays.length);
+}
+
+/* Prédiction de l'ovulation - généralement J14 pour un cycle de 28 jours */
+function getPredictedOvulationDate(lastStart, cycleLen) {
+  if (!lastStart) return null;
+  cycleLen = cycleLen || 28;
+  return addDays(lastStart, Math.floor(cycleLen / 2) - 1);
+}
+
+function getOvulationWindow(lastStart, cycleLen) {
+  if (!lastStart) return null;
+  cycleLen = cycleLen || 28;
+  var ovulationDay = Math.floor(cycleLen / 2) - 1;
+  var start = addDays(lastStart, ovulationDay - 2);
+  var end = addDays(lastStart, ovulationDay + 2);
+  return { start: start, end: end, peak: addDays(lastStart, ovulationDay) };
+}
+
+function isOvulationDay(dateStr, lastStart, cycleLen) {
+  var ovWindow = getOvulationWindow(lastStart, cycleLen);
+  if (!ovWindow) return false;
+  return dateStr >= ovWindow.start && dateStr <= ovWindow.end;
+}

@@ -59,17 +59,28 @@ async function init() {
             cycleLen: row.cycle_len || 28, periodDur: row.period_dur || 5,
             avatarColor: row.avatar_color || '#8b2252',
             onboardingDone: true,
+            darkMode: row.dark_mode || false,
             notifPrefs: row.notif_prefs || { enabled:false, pillReminder:false, pillHour:20 },
             periods:     row.periods     || [],
             rapports:    row.rapports    || [],
             symptoms:    row.symptoms    || [],
             medications: row.medications || [],
+            moods:       row.moods       || [],
+            energies:    row.energies    || [],
+            temperatures: row.temperatures || [],
+            weights:     row.weights     || [],
+            thoughts:    row.thoughts    || [],
+            discharge:   row.discharge   || [],
+            periodDelays: row.period_delays || [],
             createdAt: row.created_at ? row.created_at.split('T')[0] : todayStr()
           };
           App.data.uid = session.user.id;
           App.data.users[session.user.id] = u;
           saveLocal(App.data);
           App.state.syncStatus = 'ok';
+          
+          /* Appliquer le mode sombre si activé */
+          if(u.darkMode) document.body.classList.add('dark-mode');
         }
         App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
         hideSplash(); render();

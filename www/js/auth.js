@@ -47,17 +47,29 @@ function doAuth() {
   if(pass.length<6){showAuthErr('Mot de passe : 6 caractères minimum.');return;}
   setAuthLoading(true);
 
+  /* Timeout de 30 secondes pour éviter un chargement infini */
+  var authTimeout = setTimeout(function(){
+    setAuthLoading(false);
+    showAuthErr('La connexion prend trop de temps. Vérifiez votre internet et réessayez.');
+  }, 30000);
+
   if(App.state.authMode==='login') {
     db.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+      clearTimeout(authTimeout);
       if(res.error){showAuthErr(translateAuthError(res.error.message));setAuthLoading(false);return;}
       onSignedIn(res.data.user);
-    }).catch(function(){showAuthErr('Erreur de connexion.');setAuthLoading(false);});
+    }).catch(function(err){
+      clearTimeout(authTimeout);
+      showAuthErr(translateAuthError(err.message || 'Erreur de connexion.'));
+      setAuthLoading(false);
+    });
   } else {
     var name=((document.getElementById('a-name')||{}).value||'').trim();
     var conf=(document.getElementById('a-conf')||{}).value||'';
-    if(!name){showAuthErr('Veuillez entrer votre prénom.');setAuthLoading(false);return;}
-    if(pass!==conf){showAuthErr('Les mots de passe ne correspondent pas.');setAuthLoading(false);return;}
+    if(!name){showAuthErr('Veuillez entrer votre prénom.');setAuthLoading(false);clearTimeout(authTimeout);return;}
+    if(pass!==conf){showAuthErr('Les mots de passe ne correspondent pas.');setAuthLoading(false);clearTimeout(authTimeout);return;}
     db.auth.signUp({email:email,password:pass}).then(function(res){
+      clearTimeout(authTimeout);
       if(res.error){showAuthErr(translateAuthError(res.error.message));setAuthLoading(false);return;}
       var uid=res.data.user.id;
       var u=newUser(name,email,uid);
@@ -69,8 +81,15 @@ function doAuth() {
         /* → onboarding obligatoire pour les nouveaux comptes */
         App.state.screen='onboarding'; App.state.onboardingStep=1;
         App.state.syncStatus='ok'; render();
+      }).catch(function(err){
+        showAuthErr('Erreur lors de la création du compte: ' + (err.message || 'Veuillez réessayer.'));
+        setAuthLoading(false);
       });
-    }).catch(function(){showAuthErr('Erreur lors de la création du compte.');setAuthLoading(false);});
+    }).catch(function(err){
+      clearTimeout(authTimeout);
+      showAuthErr(translateAuthError(err.message || 'Erreur lors de la création du compte.'));
+      setAuthLoading(false);
+    });
   }
 }
 
@@ -95,9 +114,13 @@ function onSignedIn(supaUser) {
 
 function translateAuthError(msg) {
   if(!msg) return 'Erreur inconnue.';
-  if(msg.includes('Invalid login')||msg.includes('invalid_credentials')) return 'Email ou mot de passe incorrect.';
+  if(msg.includes('Invalid login')||msg.includes('invalid_credentials')||msg.includes('Invalid email or password')) return 'Email ou mot de passe incorrect.';
+  if(msg.includes('User not found')||msg.includes('user_not_found')) return 'Aucun compte trouvé avec cet email.';
   if(msg.includes('already registered')||msg.includes('already been registered')) return 'Cet email est déjà utilisé.';
-  if(msg.includes('network')) return 'Problème de connexion internet.';
+  if(msg.includes('Password should be at least')||msg.includes('Password should be')) return 'Le mot de passe doit contenir au moins 6 caractères.';
+  if(msg.includes('To signup, please provide your email')||msg.includes('email')) return 'Adresse email invalide.';
+  if(msg.includes('network')||msg.includes('fetch')||msg.includes('Failed to fetch')) return 'Problème de connexion internet. Vérifiez votre connexion.';
+  if(msg.includes('timeout')||msg.includes('timed out')) return 'La connexion a pris trop de temps. Réessayez.';
   return msg;
 }
 

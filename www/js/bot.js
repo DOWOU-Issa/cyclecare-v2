@@ -78,6 +78,24 @@ function buildSystemPrompt() {
     }).join(' ; ') + '\n';
   }
 
+  /* Données d'humeur récentes */
+  var recentMoods = (u && u.moods || []).filter(function(m) {
+    return diffDays(m.date, today) >= 0 && diffDays(m.date, today) <= 14;
+  });
+  if (recentMoods.length) {
+    var moodInfo = MOOD_OPTIONS.find(function(opt){return opt.val===recentMoods[recentMoods.length-1].value;})||{};
+    ctx += '- Humeur récente : ' + moodInfo.lbl + ' (' + recentMoods[recentMoods.length-1].value + '/10) le ' + fmtDate(recentMoods[recentMoods.length-1].date) + '\n';
+  }
+
+  /* Données d'énergie récentes */
+  var recentEnergies = (u && u.energies || []).filter(function(e) {
+    return diffDays(e.date, today) >= 0 && diffDays(e.date, today) <= 14;
+  });
+  if (recentEnergies.length) {
+    var energyInfo = ENERGY_OPTIONS.find(function(opt){return opt.val===recentEnergies[recentEnergies.length-1].value;})||{};
+    ctx += '- Énergie récente : ' + energyInfo.lbl + ' (' + recentEnergies[recentEnergies.length-1].value + '/8) le ' + fmtDate(recentEnergies[recentEnergies.length-1].date) + '\n';
+  }
+
   var risk = calcRisk();
   if (risk && risk.level !== 'none') {
     ctx += '- Risque grossesse calculé : ' + risk.level + '\n';
@@ -123,7 +141,7 @@ async function callBotProxy(userMessage) {
     contents: history,
     generationConfig: {
       temperature:     0.7,
-      maxOutputTokens: 600,
+      maxOutputTokens: 2048,  /* Augmenté à 2048 pour éviter les réponses coupées */
       topP:            0.9
     },
     safetySettings: [
@@ -217,15 +235,48 @@ function scrollBotToBottom() {
 /* =============================================
    RENDU DU CHAT
    ============================================= */
-var BOT_SUGGESTIONS = [
-  'Mes règles ont du retard, est-ce normal ?',
+var BOT_SUGGESTIONS_BASE = [
   'Comment réduire les crampes naturellement ?',
-  'J\'ai pris EllaOne, quand auront lieu mes prochaines règles ?',
-  'Comment savoir si j\'ovule ?',
-  'Est-ce que je peux être enceinte ?',
   'Pourquoi mes règles sont irrégulières ?',
   'Quels aliments aident pendant les règles ?',
+  'Comment savoir si j\'ovule ?',
 ];
+
+function getPhaseSpecificSuggestions() {
+  var lp = getLastPeriod();
+  if (!lp) return BOT_SUGGESTIONS_BASE;
+  
+  var zone = getZone(todayStr(), lp.start, getCycleLen());
+  var zoneSuggestions = {
+    'period': [
+      'Soulager les crampes menstruelles naturellement',
+      'Aliments à éviter pendant les règles',
+      'Gérer la fatigue pendant les règles'
+    ],
+    'safe1': [
+      'Exercices recommandés après les règles',
+      'Aliments pour reprendre de l\'énergie',
+      'Bienfaits du sport en phase favorable'
+    ],
+    'caution': [
+      'Signes que l\'ovulation approche',
+      'Préparer son corps pour l\'ovulation',
+      'Surveiller les changements corporels'
+    ],
+    'danger': [
+      'Maximiser les chances de conception',
+      'Comprendre la fenêtre fertile',
+      'Contraception en période fertile'
+    ],
+    'safe2': [
+      'Gérer le syndrome prémenstruel',
+      'Réduire les ballonnements avant règles',
+      'Se préparer pour les prochaines règles'
+    ]
+  };
+  
+  return zoneSuggestions[zone] || BOT_SUGGESTIONS_BASE;
+}
 
 function useSuggestion(text) {
   var inp = document.getElementById('bot-input');
@@ -273,15 +324,16 @@ function renderBotWelcome() {
   var lp   = getLastPeriod();
   var zone = lp ? getZone(todayStr(), lp.start, getCycleLen()) : null;
   var zi   = zone ? ZONE_INFO[zone] : null;
+  var suggestions = getPhaseSpecificSuggestions();
 
   return '<div class="bot-welcome">'
     + '<div class="bot-welcome-icon"><i class="ti ti-sparkles" aria-hidden="true"></i></div>'
     + '<div class="bot-welcome-title">Bonjour, ' + esc((u && u.name) || '') + '</div>'
     + '<div class="bot-welcome-sub">Je suis votre assistante santé. Je connais votre cycle et je réponds à vos questions sur la santé menstruelle, la contraception et le bien-être féminin.</div>'
     + (zi ? '<div style="text-align:center;margin-bottom:14px;"><span class="zone-chip ' + zi.chipCls + '">Phase actuelle : ' + zi.lbl + '</span></div>' : '')
-    + '<div class="bot-suggestions-label">Questions fréquentes</div>'
+    + '<div class="bot-suggestions-label">Questions suggérées pour votre phase</div>'
     + '<div class="bot-suggestions">'
-    + BOT_SUGGESTIONS.map(function(s) {
+    + suggestions.map(function(s) {
         return '<button class="bot-suggestion" onclick="useSuggestion(\'' + s.replace(/'/g, "\\'") + '\')">' + esc(s) + '</button>';
       }).join('')
     + '</div></div>';
