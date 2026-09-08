@@ -272,6 +272,102 @@ function confirmPasswordReset() {
 }
 
 /* =============================================
+   Changement de mot de passe (utilisateur connecté)
+   ============================================= */
+
+function renderChangePassword() {
+  return '<div class="modal-overlay" id="change-password-modal" onclick="closeChangePasswordModal(event)"><div class="modal-box" onclick="event.stopPropagation()">'
+    +'<div class="modal-header">'
+    +'<div class="modal-title">Changer mon mot de passe</div>'
+    +'<button class="modal-close" onclick="closeChangePasswordModal()"><i class="ti ti-x"></i></button>'
+    +'</div>'
+    +'<div class="modal-body">'
+    +'<div id="change-password-err" class="err-box" role="alert"></div>'
+    +'<div class="form-grp"><label class="lbl" for="current-pass">Mot de passe actuel</label>'
+    +'<input class="inp" type="password" id="current-pass" placeholder="Votre mot de passe actuel" autocomplete="current-password"/></div>'
+    +'<div class="form-grp"><label class="lbl" for="new-pass">Nouveau mot de passe</label>'
+    +'<input class="inp" type="password" id="new-pass" placeholder="Au moins 6 caractères" autocomplete="new-password"/></div>'
+    +'<div class="form-grp"><label class="lbl" for="new-conf">Confirmer le mot de passe</label>'
+    +'<input class="inp" type="password" id="new-conf" placeholder="••••••••" autocomplete="new-password"/></div>'
+    +'<button class="btn btn-primary btn-full" id="change-password-btn" onclick="doChangePassword()">'
+    +'<i class="ti ti-key"></i> Changer mon mot de passe</button>'
+    +'</div></div></div>';
+}
+
+function doChangePassword() {
+  var currentPass = (document.getElementById('current-pass')||{}).value||'';
+  var newPass = (document.getElementById('new-pass')||{}).value||'';
+  var newConf = (document.getElementById('new-conf')||{}).value||'';
+  var u = getUser();
+  
+  if(!currentPass){showChangePasswordErr('Veuillez entrer votre mot de passe actuel.');return;}
+  if(!newPass || newPass.length < 6){showChangePasswordErr('Le nouveau mot de passe doit contenir au moins 6 caractères.');return;}
+  if(newPass !== newConf){showChangePasswordErr('Les mots de passe ne correspondent pas.');return;}
+  if(currentPass === newPass){showChangePasswordErr('Le nouveau mot de passe doit être différent de l\'actuel.');return;}
+  
+  setChangePasswordLoading(true);
+  
+  var changeTimeout = setTimeout(function(){
+    setChangePasswordLoading(false);
+    showChangePasswordErr('Le changement prend trop de temps. Vérifiez votre internet et réessayez.');
+  }, 30000);
+  
+  // D'abord vérifier le mot de passe actuel
+  db.auth.signInWithPassword({
+    email: u.email,
+    password: currentPass
+  }).then(function(signInRes){
+    if(signInRes.error){
+      clearTimeout(changeTimeout);
+      showChangePasswordErr('Mot de passe actuel incorrect.');
+      setChangePasswordLoading(false);
+      return;
+    }
+    
+    // Ensuite changer le mot de passe
+    db.auth.updateUser({
+      password: newPass
+    }).then(function(updateRes){
+      clearTimeout(changeTimeout);
+      if(updateRes.error){
+        showChangePasswordErr(translateAuthError(updateRes.error.message));
+        setChangePasswordLoading(false);
+        return;
+      }
+      
+      showChangePasswordErr('Mot de passe changé avec succès !');
+      setTimeout(function(){
+        closeChangePasswordModal();
+      }, 2000);
+    }).catch(function(err){
+      clearTimeout(changeTimeout);
+      showChangePasswordErr(translateAuthError(err.message || 'Erreur lors du changement de mot de passe.'));
+      setChangePasswordLoading(false);
+    });
+  }).catch(function(err){
+    clearTimeout(changeTimeout);
+    showChangePasswordErr('Erreur de vérification du mot de passe.');
+    setChangePasswordLoading(false);
+  });
+}
+
+function showChangePasswordErr(msg) {
+  var e = document.getElementById('change-password-err');
+  if(e){
+    e.textContent = msg;
+    e.style.display = 'block';
+  }
+}
+
+function setChangePasswordLoading(on) {
+  var btn = document.getElementById('change-password-btn');
+  if(!btn) return;
+  btn.disabled = on;
+  btn.innerHTML = on ? '<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i> Chargement...' 
+    : '<i class="ti ti-key"></i> Changer mon mot de passe';
+}
+
+/* =============================================
    Changement d'email (utilisateur connecté)
    ============================================= */
 
@@ -279,10 +375,10 @@ function renderChangeEmail() {
   var u = getUser();
   if(!u) return '';
   
-  return '<div class="modal-overlay" onclick="closeModal()"><div class="modal-box" onclick="event.stopPropagation()">'
+  return '<div class="modal-overlay" id="change-email-modal" onclick="closeChangeEmailModal(event)"><div class="modal-box" onclick="event.stopPropagation()">'
     +'<div class="modal-header">'
     +'<div class="modal-title">Changer mon email</div>'
-    +'<button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>'
+    +'<button class="modal-close" onclick="closeChangeEmailModal()"><i class="ti ti-x"></i></button>'
     +'</div>'
     +'<div class="modal-body">'
     +'<div id="change-email-err" class="err-box" role="alert"></div>'
@@ -342,7 +438,7 @@ function doChangeEmail() {
       
       showChangeEmailErr('Email changé avec succès ! Un email de confirmation a été envoyé à ' + newEmail);
       setTimeout(function(){
-        closeModal();
+        closeChangeEmailModal();
         render();
       }, 2000);
     }).catch(function(err){
@@ -371,6 +467,22 @@ function setChangeEmailLoading(on) {
   btn.disabled = on;
   btn.innerHTML = on ? '<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i> Chargement...' 
     : '<i class="ti ti-mail"></i> Changer mon email';
+}
+
+function closeChangeEmailModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  var modal = document.getElementById('change-email-modal');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+function closeChangePasswordModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  var modal = document.getElementById('change-password-modal');
+  if (modal) {
+    modal.remove();
+  }
 }
 
 /* =============================================

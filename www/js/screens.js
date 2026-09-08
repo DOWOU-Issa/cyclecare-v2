@@ -434,7 +434,7 @@ function renderParametres(){
   html+='<div class="sec-title">Compte</div>'
     +'<div class="settings-card">'
     +settingsRow('ti-mail','Changer mon email','Modifier votre adresse email de connexion','<button class="btn btn-sm btn-outline" onclick="openChangeEmailModal()">Changer</button>')
-    +settingsRow('ti-key','Mot de passe','Modifier votre mot de passe pour plus de sécurité','<button class="btn btn-sm btn-outline" onclick="toggleAuthMode(\'reset\')">Modifier</button>')
+    +settingsRow('ti-key','Mot de passe','Modifier votre mot de passe pour plus de sécurité','<button class="btn btn-sm btn-outline" onclick="openChangePasswordModal()">Modifier</button>')
     +settingsRow('ti-logout','Déconnexion','Se déconnecter de votre compte','<button class="btn btn-sm btn-outline" onclick="logout()">Déconnecter</button>')
     +'</div>';
 
@@ -652,6 +652,15 @@ function toggleDarkMode(enabled){
 
 function openChangeEmailModal(){
   var modalHtml = renderChangeEmail();
+  if(modalHtml){
+    var modalDiv = document.createElement('div');
+    modalDiv.innerHTML = modalHtml;
+    document.body.appendChild(modalDiv);
+  }
+}
+
+function openChangePasswordModal(){
+  var modalHtml = renderChangePassword();
   if(modalHtml){
     var modalDiv = document.createElement('div');
     modalDiv.innerHTML = modalHtml;

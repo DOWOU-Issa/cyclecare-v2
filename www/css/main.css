@@ -193,6 +193,7 @@ body {
     grid-template-columns: var(--sidebar-w) 1fr;
     height: 100vh;
     overflow: hidden;
+    scroll-behavior: auto;
   }
 
   /* Sidebar */
@@ -208,6 +209,51 @@ body {
     overflow-y: auto;
     scrollbar-width: thin;
     z-index: 5;
+    scroll-behavior: auto;
+  }
+  
+  .sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .sidebar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+  
+  .sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--border-mid);
+  }
+  
+  /* Empêcher les sauts de scroll sur les boutons et améliorations PC */
+  button, .btn, [onclick] {
+    scroll-margin: 0;
+  }
+  
+  /* Meilleure gestion du focus pour PC */
+  button:focus, .btn:focus, input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+  
+  /* Transition douce pour focus */
+  button:focus, .btn:focus, input:focus, select:focus, textarea:focus {
+    transition: outline 0.15s ease;
+  }
+  
+  /* Meilleure visibilité des éléments interactifs au survol */
+  .btn:hover, .nav-tab:hover, .item-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .btn:active, .nav-tab:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   .sidebar-brand {
@@ -292,6 +338,24 @@ body {
     overflow-x: hidden;
     position: relative;
     z-index: 1;
+    scroll-behavior: auto;
+  }
+  
+  .content-area::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .content-area::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+  
+  .content-area::-webkit-scrollbar-thumb {
+    background: var(--border-mid);
+    border-radius: 4px;
+  }
+  
+  .content-area::-webkit-scrollbar-thumb:hover {
+    background: var(--border);
   }
 
   .page-content {
