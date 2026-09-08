@@ -430,6 +430,14 @@ function renderParametres(){
   /* Assistant IA */
   html += renderBotSettingsSection();
 
+  /* Compte */
+  html+='<div class="sec-title">Compte</div>'
+    +'<div class="settings-card">'
+    +settingsRow('ti-mail','Changer mon email','Modifier votre adresse email de connexion','<button class="btn btn-sm btn-outline" onclick="openChangeEmailModal()">Changer</button>')
+    +settingsRow('ti-key','Mot de passe','Modifier votre mot de passe pour plus de sécurité','<button class="btn btn-sm btn-outline" onclick="toggleAuthMode(\'reset\')">Modifier</button>')
+    +settingsRow('ti-logout','Déconnexion','Se déconnecter de votre compte','<button class="btn btn-sm btn-outline" onclick="logout()">Déconnecter</button>')
+    +'</div>';
+
   /* Données */
   html+='<div class="sec-title">Données personnelles</div>'
     +'<div class="settings-card">'
@@ -640,6 +648,15 @@ function toggleDarkMode(enabled){
     document.body.classList.remove('dark-mode');
   }
   showToast(enabled ? 'Mode sombre activé.' : 'Mode clair activé.');
+}
+
+function openChangeEmailModal(){
+  var modalHtml = renderChangeEmail();
+  if(modalHtml){
+    var modalDiv = document.createElement('div');
+    modalDiv.innerHTML = modalHtml;
+    document.body.appendChild(modalDiv);
+  }
 }
 
 function exportData(){
