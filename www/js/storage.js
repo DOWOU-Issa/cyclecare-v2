@@ -105,13 +105,12 @@ var OfflineManager = {
   isOnline: true,
   offlineSince: null,
   syncQueue: [],
-  isSyncing: false,
   
   init: function() {
     var self = this;
     this.isOnline = navigator.onLine;
     
-    // Écouteurs de connectivité
+    // Écouteurs de connectivité natifs du navigateur
     window.addEventListener('online', function() {
       self.onOnline();
     });
@@ -120,45 +119,14 @@ var OfflineManager = {
       self.onOffline();
     });
     
-    // Vérification périodique de connectivité
-    setInterval(function() {
-      self.checkConnectivity();
-    }, 30000); // toutes les 30 secondes
-    
     this.updateIndicator();
   },
   
   checkConnectivity: function() {
-    var self = this;
-    // Ne pas vérifier pendant une sync en cours pour éviter les faux positifs
-    if (this.isSyncing) return;
-    
-    // Ping vers Supabase pour vérifier la connectivité réelle
-    if (db) {
-      this.isSyncing = true;
-      db.from('user_data').select('user_id').limit(1).then(function() {
-        self.isSyncing = false;
-        if (!self.isOnline) {
-          self.onOnline();
-        }
-      }).catch(function() {
-        self.isSyncing = false;
-        // Ne passer en offline que si on était online et que ça échoue vraiment
-        if (self.isOnline) {
-          // Attendre un peu avant de déclarer offline pour éviter les faux positifs
-          setTimeout(function() {
-            if (!self.isSyncing && self.isOnline) {
-              db.from('user_data').select('user_id').limit(1).then(function() {
-                // OK, on est online
-              }).catch(function() {
-                // Vraiment offline
-                self.onOffline();
-              });
-            }
-          }, 2000);
-        }
-      });
-    }
+    // Plus de ping Supabase - on se base uniquement sur navigator.onLine
+    // pour éviter les faux positifs sur le web
+    // Sur Android/Windows natif, le ping n'est pas nécessaire
+    return;
   },
   
   onOnline: function() {
