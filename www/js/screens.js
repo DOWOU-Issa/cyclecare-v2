@@ -621,11 +621,23 @@ async function toggleNotifications(enabled){
     }
   }
   updateUser(function(u){ u.notifPrefs = u.notifPrefs||{}; u.notifPrefs.enabled = enabled; return u; });
+  // Sauvegarder localement d'abord pour éviter le problème hors ligne
+  saveLocal(App.data);
+  // Synchroniser avec Supabase en arrière-plan (ne pas bloquer)
+  syncToSupabase().catch(function(err){
+    console.log('Sync en arrière-plan :', err);
+  });
   showToast(enabled ? 'Notifications activées.' : 'Notifications désactivées.');
   render();
 }
 function togglePillReminder(enabled){
   updateUser(function(u){ u.notifPrefs = u.notifPrefs||{}; u.notifPrefs.pillReminder = enabled; return u; });
+  // Sauvegarder localement d'abord
+  saveLocal(App.data);
+  // Synchroniser avec Supabase en arrière-plan
+  syncToSupabase().catch(function(err){
+    console.log('Sync en arrière-plan :', err);
+  });
   render();
 }
 function savePillHour(h){
@@ -853,123 +865,193 @@ function generateMonthlyReport() {
   var lp = getLastPeriod();
   var cl = getCycleLen();
   
-  var report = '═══════════════════════════════════════════════════\n';
-  report += '              RAPPORT DE SANTÉ MENSUEL\n';
-  report += '                    CycleCare\n';
-  report += '═══════════════════════════════════════════════════\n\n';
-  report += 'Utilisatrice : ' + (u.name || 'N/A') + '\n';
-  report += 'Date du rapport : ' + fmtDate(today) + '\n';
-  report += 'Cycle : ' + cl + ' jours\n';
-  report += 'Durée des règles : ' + u.periodDur + ' jours\n\n';
+  // Générer un rapport HTML formaté pour meilleure présentation
+  var htmlReport = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">';
+  htmlReport += '<title>Rapport de Santé Mensuel - CycleCare</title>';
+  htmlReport += '<style>';
+  htmlReport += 'body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; }';
+  htmlReport += '.header { text-align: center; border-bottom: 3px solid #8b2252; padding-bottom: 20px; margin-bottom: 30px; }';
+  htmlReport += '.header h1 { color: #8b2252; margin: 0; }';
+  htmlReport += '.header p { color: #666; margin: 5px 0; }';
+  htmlReport += '.section { margin-bottom: 30px; }';
+  htmlReport += '.section h2 { color: #8b2252; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }';
+  htmlReport += '.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }';
+  htmlReport += '.info-item { background: #f9f9f9; padding: 10px; border-radius: 5px; }';
+  htmlReport += '.info-item strong { color: #8b2252; }';
+  htmlReport += '.data-list { list-style: none; padding: 0; }';
+  htmlReport += '.data-list li { padding: 10px; border-bottom: 1px solid #eee; }';
+  htmlReport += '.data-list li:last-child { border-bottom: none; }';
+  htmlReport += '.date { font-weight: bold; color: #8b2252; }';
+  htmlReport += '.no-data { color: #999; font-style: italic; }';
+  htmlReport += '.footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }';
+  htmlReport += '@media print { body { font-size: 12pt; } .header { page-break-after: avoid; } .section { page-break-inside: avoid; } }';
+  htmlReport += '</style></head><body>';
   
-  report += '───────────────────────────────────────────────────\n';
-  report += '                  RÈGLES DU MOIS\n';
-  report += '───────────────────────────────────────────────────\n';
+  // Header
+  htmlReport += '<div class="header">';
+  htmlReport += '<h1>🌸 Rapport de Santé Mensuel</h1>';
+  htmlReport += '<p><strong>CycleCare</strong> - Suivi du cycle menstruel</p>';
+  htmlReport += '<p>Généré le ' + fmtDate(today) + '</p>';
+  htmlReport += '</div>';
+  
+  // Informations générales
+  htmlReport += '<div class="section">';
+  htmlReport += '<h2>Informations du cycle</h2>';
+  htmlReport += '<div class="info-grid">';
+  htmlReport += '<div class="info-item"><strong>Utilisatrice :</strong> ' + (u.name || 'N/A') + '</div>';
+  htmlReport += '<div class="info-item"><strong>Cycle :</strong> ' + cl + ' jours</div>';
+  htmlReport += '<div class="info-item"><strong>Durée des règles :</strong> ' + u.periodDur + ' jours</div>';
+  htmlReport += '<div class="info-item"><strong>Mois :</strong> ' + currentMonth + '</div>';
+  htmlReport += '</div></div>';
+  
+  // Règles du mois
+  htmlReport += '<div class="section">';
+  htmlReport += '<h2>📅 Règles du mois</h2>';
   var periodsThisMonth = (u.periods || []).filter(function(p) { return p.start && p.start.startsWith(currentMonth); });
   if (periodsThisMonth.length) {
+    htmlReport += '<ul class="data-list">';
     periodsThisMonth.forEach(function(p) {
-      report += '• Début : ' + fmtDate(p.start) + '\n';
-      if (p.end) report += '  Fin : ' + fmtDate(p.end) + '\n';
-      if (p.flow) report += '  Flux : ' + p.flow + '\n';
-      if (p.notes) report += '  Notes : ' + p.notes + '\n';
-      report += '\n';
+      htmlReport += '<li><span class="date">' + fmtDate(p.start) + '</span>';
+      if (p.end) htmlReport += ' → ' + fmtDate(p.end) + ' (' + (diffDays(p.start, p.end) + 1) + ' jours)';
+      if (p.flow) htmlReport += '<br><em>Flux : ' + p.flow + '</em>';
+      if (p.notes) htmlReport += '<br><em>Notes : ' + p.notes + '</em>';
+      htmlReport += '</li>';
     });
+    htmlReport += '</ul>';
   } else {
-    report += 'Aucune période enregistrée ce mois.\n\n';
+    htmlReport += '<p class="no-data">Aucune période enregistrée ce mois.</p>';
   }
+  htmlReport += '</div>';
   
-  report += '───────────────────────────────────────────────────\n';
-  report += '                  SYMPTÔMES\n';
-  report += '───────────────────────────────────────────────────\n';
+  // Symptômes
+  htmlReport += '<div class="section">';
+  htmlReport += '<h2>😰 Symptômes</h2>';
   var symptomsThisMonth = (u.symptoms || []).filter(function(s) { return s.date && s.date.startsWith(currentMonth); });
   if (symptomsThisMonth.length) {
+    htmlReport += '<ul class="data-list">';
     symptomsThisMonth.forEach(function(s) {
-      report += '• ' + fmtDate(s.date) + ' : ' + (s.items || []).join(', ') + '\n';
-      if (s.notes) report += '  ' + s.notes + '\n';
+      htmlReport += '<li><span class="date">' + fmtDate(s.date) + '</span> : ' + (s.items || []).join(', ');
+      if (s.notes) htmlReport += '<br><em>' + s.notes + '</em>';
+      htmlReport += '</li>';
     });
-    report += '\n';
+    htmlReport += '</ul>';
   } else {
-    report += 'Aucun symptôme enregistré ce mois.\n\n';
+    htmlReport += '<p class="no-data">Aucun symptôme enregistré ce mois.</p>';
   }
+  htmlReport += '</div>';
   
-  report += '───────────────────────────────────────────────────\n';
-  report += '                  HUMEUR & ÉNERGIE\n';
-  report += '───────────────────────────────────────────────────\n';
+  // Humeur & Énergie
+  htmlReport += '<div class="section">';
+  htmlReport += '<h2>😊 Humeur & Énergie</h2>';
   var moodsThisMonth = (u.moods || []).filter(function(m) { return m.date && m.date.startsWith(currentMonth); });
   var energiesThisMonth = (u.energies || []).filter(function(e) { return e.date && e.date.startsWith(currentMonth); });
+  
   if (moodsThisMonth.length) {
-    report += 'Humeur :\n';
+    htmlReport += '<h3>Humeur</h3><ul class="data-list">';
     moodsThisMonth.forEach(function(m) {
       var moodInfo = MOOD_OPTIONS.find(function(opt){return opt.val===m.value;})||{};
-      report += '• ' + fmtDate(m.date) + ' : ' + moodInfo.lbl + ' (' + m.value + '/10)\n';
+      htmlReport += '<li><span class="date">' + fmtDate(m.date) + '</span> : ' + moodInfo.lbl + ' (' + m.value + '/10)';
+      if (m.notes) htmlReport += '<br><em>' + m.notes + '</em>';
+      htmlReport += '</li>';
     });
-    report += '\n';
+    htmlReport += '</ul>';
   }
+  
   if (energiesThisMonth.length) {
-    report += 'Énergie :\n';
+    htmlReport += '<h3>Énergie</h3><ul class="data-list">';
     energiesThisMonth.forEach(function(e) {
       var energyInfo = ENERGY_OPTIONS.find(function(opt){return opt.val===e.value;})||{};
-      report += '• ' + fmtDate(e.date) + ' : ' + energyInfo.lbl + ' (' + e.value + '/8)\n';
+      htmlReport += '<li><span class="date">' + fmtDate(e.date) + '</span> : ' + energyInfo.lbl + ' (' + e.value + '/8)';
+      if (e.notes) htmlReport += '<br><em>' + e.notes + '</em>';
+      htmlReport += '</li>';
     });
-    report += '\n';
-  }
-  if (!moodsThisMonth.length && !energiesThisMonth.length) {
-    report += 'Aucune donnée d\'humeur/énergie ce mois.\n\n';
+    htmlReport += '</ul>';
   }
   
-  report += '───────────────────────────────────────────────────\n';
-  report += '                  TEMPÉRATURE & POIDS\n';
-  report += '───────────────────────────────────────────────────\n';
+  if (!moodsThisMonth.length && !energiesThisMonth.length) {
+    htmlReport += '<p class="no-data">Aucune donnée d\'humeur/énergie ce mois.</p>';
+  }
+  htmlReport += '</div>';
+  
+  // Température & Poids
+  htmlReport += '<div class="section">';
+  htmlReport += '<h2>🌡️ Température & Poids</h2>';
   var tempsThisMonth = (u.temperatures || []).filter(function(t) { return t.date && t.date.startsWith(currentMonth); });
   var weightsThisMonth = (u.weights || []).filter(function(w) { return w.date && w.date.startsWith(currentMonth); });
+  
   if (tempsThisMonth.length) {
-    report += 'Température :\n';
+    htmlReport += '<h3>Température basale</h3><ul class="data-list">';
     tempsThisMonth.forEach(function(t) {
-      report += '• ' + fmtDate(t.date) + ' (' + t.time + ') : ' + t.value + '°C\n';
+      htmlReport += '<li><span class="date">' + fmtDate(t.date) + '</span> (' + t.time + ') : ' + t.value + '°C';
+      if (t.notes) htmlReport += '<br><em>' + t.notes + '</em>';
+      htmlReport += '</li>';
     });
-    report += '\n';
-  }
-  if (weightsThisMonth.length) {
-    report += 'Poids :\n';
-    weightsThisMonth.forEach(function(w) {
-      report += '• ' + fmtDate(w.date) + ' : ' + w.value + ' kg\n';
-    });
-    report += '\n';
-  }
-  if (!tempsThisMonth.length && !weightsThisMonth.length) {
-    report += 'Aucune donnée de température/poids ce mois.\n\n';
+    htmlReport += '</ul>';
   }
   
-  report += '───────────────────────────────────────────────────\n';
-  report += '                  ACTIVITÉ SEXUELLE\n';
-  report += '───────────────────────────────────────────────────\n';
+  if (weightsThisMonth.length) {
+    htmlReport += '<h3>Poids</h3><ul class="data-list">';
+    weightsThisMonth.forEach(function(w) {
+      htmlReport += '<li><span class="date">' + fmtDate(w.date) + '</span> : ' + w.value + ' kg';
+      if (w.notes) htmlReport += '<br><em>' + w.notes + '</em>';
+      htmlReport += '</li>';
+    });
+    htmlReport += '</ul>';
+  }
+  
+  if (!tempsThisMonth.length && !weightsThisMonth.length) {
+    htmlReport += '<p class="no-data">Aucune donnée de température/poids ce mois.</p>';
+  }
+  htmlReport += '</div>';
+  
+  // Activité sexuelle
+  htmlReport += '<div class="section">';
+  htmlReport += '<h2>❤️ Activité sexuelle</h2>';
   var rapportsThisMonth = (u.rapports || []).filter(function(r) { return r.date && r.date.startsWith(currentMonth); });
   if (rapportsThisMonth.length) {
+    htmlReport += '<ul class="data-list">';
     rapportsThisMonth.forEach(function(r) {
-      report += '• ' + fmtDate(r.date) + ' : ' + (r.protected ? 'Protégé' : 'Non protégé') + '\n';
+      htmlReport += '<li><span class="date">' + fmtDate(r.date) + '</span> : ' + (r.protected ? 'Protégé ✓' : 'Non protégé ⚠️') + '</li>';
     });
-    report += '\n';
+    htmlReport += '</ul>';
   } else {
-    report += 'Aucun rapport enregistré ce mois.\n\n';
+    htmlReport += '<p class="no-data">Aucun rapport enregistré ce mois.</p>';
   }
+  htmlReport += '</div>';
   
-  report += '═══════════════════════════════════════════════════\n';
-  report += '                  CONSEILS DU MOIS\n';
-  report += '═══════════════════════════════════════════════════\n';
-  report += 'Ce rapport a été généré par CycleCare.\n';
-  report += 'Partagez-le avec votre professionnel de santé si nécessaire.\n';
-  report += '═══════════════════════════════════════════════════\n';
+  // Footer
+  htmlReport += '<div class="footer">';
+  htmlReport += '<p><strong>CycleCare</strong> - Application de suivi du cycle menstruel</p>';
+  htmlReport += '<p>Ce rapport a été généré automatiquement.</p>';
+  htmlReport += '<p>Partagez-le avec votre professionnel de santé si nécessaire.</p>';
+  htmlReport += '<p style="font-size: 12px; color: #999;">' + todayStr() + '</p>';
+  htmlReport += '</div>';
   
-  var blob = new Blob([report], { type: 'text/plain;charset=utf-8;' });
+  htmlReport += '</body></html>';
+  
+  // Créer le fichier HTML et proposer le téléchargement
+  var blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8;' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'cyclecare-rapport-' + currentMonth + '.txt';
+  a.download = 'cyclecare-rapport-' + currentMonth + '.html';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('Rapport mensuel généré.');
+  
+  showToast('Rapport mensuel généré ! Ouvrez le fichier HTML dans votre navigateur pour l\'imprimer en PDF.');
+  
+  // Optionnel : proposer d'imprimer directement
+  setTimeout(function() {
+    if (confirm('Voulez-vous imprimer ce rapport maintenant en PDF ?')) {
+      var printWindow = window.open('', '_blank');
+      printWindow.document.write(htmlReport);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+  }, 500);
 }
 
 function doDeleteAccount(){
