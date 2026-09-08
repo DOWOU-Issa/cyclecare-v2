@@ -105,6 +105,7 @@ var OfflineManager = {
   isOnline: true,
   offlineSince: null,
   syncQueue: [],
+  isSyncing: false,
   
   init: function() {
     var self = this;
@@ -129,15 +130,32 @@ var OfflineManager = {
   
   checkConnectivity: function() {
     var self = this;
+    // Ne pas vérifier pendant une sync en cours pour éviter les faux positifs
+    if (this.isSyncing) return;
+    
     // Ping vers Supabase pour vérifier la connectivité réelle
     if (db) {
+      this.isSyncing = true;
       db.from('user_data').select('user_id').limit(1).then(function() {
+        self.isSyncing = false;
         if (!self.isOnline) {
           self.onOnline();
         }
       }).catch(function() {
+        self.isSyncing = false;
+        // Ne passer en offline que si on était online et que ça échoue vraiment
         if (self.isOnline) {
-          self.onOffline();
+          // Attendre un peu avant de déclarer offline pour éviter les faux positifs
+          setTimeout(function() {
+            if (!self.isSyncing && self.isOnline) {
+              db.from('user_data').select('user_id').limit(1).then(function() {
+                // OK, on est online
+              }).catch(function() {
+                // Vraiment offline
+                self.onOffline();
+              });
+            }
+          }, 2000);
         }
       });
     }
@@ -147,7 +165,10 @@ var OfflineManager = {
     this.isOnline = true;
     this.offlineSince = null;
     this.updateIndicator();
-    showToast('Connexion rétablie !', 'ok');
+    // N'afficher le toast que si on était vraiment offline depuis un moment
+    if (this.offlineSince) {
+      showToast('Connexion rétablie !', 'ok');
+    }
     
     // Synchroniser les données en attente
     this.processSyncQueue();

@@ -623,10 +623,12 @@ async function toggleNotifications(enabled){
   updateUser(function(u){ u.notifPrefs = u.notifPrefs||{}; u.notifPrefs.enabled = enabled; return u; });
   // Sauvegarder localement d'abord pour éviter le problème hors ligne
   saveLocal(App.data);
-  // Synchroniser avec Supabase en arrière-plan (ne pas bloquer)
-  syncToSupabase().catch(function(err){
-    console.log('Sync en arrière-plan :', err);
-  });
+  // Synchroniser avec Supabase en arrière-plan avec délai pour éviter la détection immédiate
+  setTimeout(function(){
+    syncToSupabase().catch(function(err){
+      console.log('Sync en arrière-plan :', err);
+    });
+  }, 1000); // Délai de 1 seconde pour éviter la détection hors ligne
   showToast(enabled ? 'Notifications activées.' : 'Notifications désactivées.');
   render();
 }
@@ -634,10 +636,12 @@ function togglePillReminder(enabled){
   updateUser(function(u){ u.notifPrefs = u.notifPrefs||{}; u.notifPrefs.pillReminder = enabled; return u; });
   // Sauvegarder localement d'abord
   saveLocal(App.data);
-  // Synchroniser avec Supabase en arrière-plan
-  syncToSupabase().catch(function(err){
-    console.log('Sync en arrière-plan :', err);
-  });
+  // Synchroniser avec Supabase en arrière-plan avec délai
+  setTimeout(function(){
+    syncToSupabase().catch(function(err){
+      console.log('Sync en arrière-plan :', err);
+    });
+  }, 1000);
   render();
 }
 function savePillHour(h){
