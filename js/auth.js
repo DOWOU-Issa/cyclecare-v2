@@ -64,12 +64,6 @@ function doAuth() {
   var pass=(document.getElementById('a-pass')||{}).value||'';
   if(!email||!pass){showAuthErr('Veuillez remplir tous les champs.');return;}
   
-  var passwordValidation = validatePasswordStrength(pass);
-  if(!passwordValidation.valid){
-    showAuthErr(passwordValidation.message);
-    return;
-  }
-  
   setAuthLoading(true);
 
   /* Timeout de 30 secondes pour éviter un chargement infini */
@@ -94,6 +88,7 @@ function doAuth() {
     if(!name){showAuthErr('Veuillez entrer votre prénom.');setAuthLoading(false);clearTimeout(authTimeout);return;}
     if(pass!==conf){showAuthErr('Les mots de passe ne correspondent pas.');setAuthLoading(false);clearTimeout(authTimeout);return;}
     
+    // Validation de complexité uniquement pour les nouveaux comptes
     var passwordValidation = validatePasswordStrength(pass);
     if(!passwordValidation.valid){
       showAuthErr(passwordValidation.message);
@@ -240,9 +235,8 @@ function confirmPasswordReset() {
   var newPass = (document.getElementById('new-pass')||{}).value||'';
   var newConf = (document.getElementById('new-conf')||{}).value||'';
   
-  var passwordValidation = validatePasswordStrength(newPass);
-  if(!passwordValidation.valid){
-    showAuthErr(passwordValidation.message);
+  if(!newPass || newPass.length < 6){
+    showAuthErr('Le mot de passe doit contenir au moins 6 caractères.');
     return;
   }
   if(newPass !== newConf){

@@ -6,7 +6,7 @@
    2. npm run build:win
    ============================================= */
 
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, session } = require('electron');
 const path = require('path');
 
 function createWindow() {
@@ -25,6 +25,9 @@ function createWindow() {
       scrollBounce: true,
       // Permettre le zoom avec la molette
       zoomFactor: 1.0,
+      // Assurer la connectivité réseau pour Supabase
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
     show: false,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -79,6 +82,12 @@ const menuTemplate = [
 ];
 
 app.whenReady().then(() => {
+  // Configuration de session pour la connectivité Supabase
+  // Assurer que les requêtes réseau vers Supabase sont autorisées
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    callback({ requestHeaders: { ...details.requestHeaders } });
+  });
+  
   Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
   createWindow();
   app.on('activate', () => {

@@ -3,7 +3,11 @@
   "appName":  "CycleCare",
   "webDir":   "www",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": [
+      "*"
+    ]
   },
   "android": {
     "allowMixedContent": true,
