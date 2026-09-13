@@ -105,7 +105,7 @@ async function init() {
       });
     } else if (App.data.uid) {
       App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
-      App.state.syncStatus = 'error';
+      App.state.syncStatus = 'ok';
       hideSplash(); render();
       Notif.checkPendingReminders();
     } else {
@@ -114,7 +114,7 @@ async function init() {
   } catch(e) {
     if (App.data.uid) {
       App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
-      App.state.syncStatus = 'error';
+      App.state.syncStatus = 'ok';
     }
     hideSplash(); render();
     Notif.checkPendingReminders();

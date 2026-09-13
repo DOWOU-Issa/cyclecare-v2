@@ -307,7 +307,7 @@ function pullFromSupabase(supabaseUid, callback) {
 function renderSyncStatus() {
   var el = document.getElementById('sync-status'); if (!el) return;
   var s = App.state.syncStatus;
-  var labels = { ok: 'Synchronisé', error: 'Hors ligne', busy: 'Synchronisation...' };
+  var labels = { ok: 'Synchronisé', error: 'Synchronisation en attente', busy: 'Synchronisation...' };
   el.className = 'sync-status sync-' + s;
   el.innerHTML = '<div class="sync-dot"></div>' + labels[s];
 }

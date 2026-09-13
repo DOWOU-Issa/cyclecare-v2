@@ -401,7 +401,7 @@ function renderParametres(){
   /* Sync */
   html+='<div id="sync-status" class="sync-status sync-'+(App.state.syncStatus||'ok')+'">'
     +'<div class="sync-dot"></div>'
-    +({ok:'Synchronisé avec Supabase',error:'Hors ligne — données sauvegardées localement',busy:'Synchronisation en cours...'}[App.state.syncStatus||'ok'])
+    +({ok:'Synchronisé avec Supabase',error:'Synchronisation en attente',busy:'Synchronisation en cours...'}[App.state.syncStatus||'ok'])
     +'</div>';
 
   /* Paramètres cycle */
