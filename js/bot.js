@@ -35,7 +35,8 @@ function buildSystemPrompt() {
 
   var ctx = 'Données du cycle de cette utilisatrice :\n';
   if (lp) {
-    var zone = getZone(today, lp.start, cl);
+    var u = getUser();
+    var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : getZone(today, lp.start, cl);
     var zi   = zone ? ZONE_INFO[zone] : null;
     var cd   = getCycleDay(today, lp.start, cl);
     var dup  = getDaysUntilPeriod(lp.start, cl);
@@ -245,8 +246,9 @@ var BOT_SUGGESTIONS_BASE = [
 function getPhaseSpecificSuggestions() {
   var lp = getLastPeriod();
   if (!lp) return BOT_SUGGESTIONS_BASE;
-  
-  var zone = getZone(todayStr(), lp.start, getCycleLen());
+
+  var u = getUser();
+  var zone = u && u.periods && u.periods.length ? getZoneForDate(todayStr(), u.periods, getCycleLen()) : getZone(todayStr(), lp.start, getCycleLen());
   var zoneSuggestions = {
     'period': [
       'Soulager les crampes menstruelles naturellement',
@@ -322,7 +324,7 @@ function renderBot() {
 function renderBotWelcome() {
   var u    = getUser();
   var lp   = getLastPeriod();
-  var zone = lp ? getZone(todayStr(), lp.start, getCycleLen()) : null;
+  var zone = u && u.periods && u.periods.length ? getZoneForDate(todayStr(), u.periods, getCycleLen()) : (lp ? getZone(todayStr(), lp.start, getCycleLen()) : null);
   var zi   = zone ? ZONE_INFO[zone] : null;
   var suggestions = getPhaseSpecificSuggestions();
 

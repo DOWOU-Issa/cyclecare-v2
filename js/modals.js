@@ -145,7 +145,7 @@ function saveRapport(){
   });
   closeModal();
   showToast(original ? 'Rapport modifié.' : 'Rapport enregistré.');
-  if(!p){var lp=getLastPeriod();if(lp&&getZone(d,lp.start,getCycleLen())==='danger')
+  if(!p){var lp=getLastPeriod();var u=getUser();var zone= u && u.periods && u.periods.length ? getZoneForDate(d, u.periods, getCycleLen()) : (lp?getZone(d,lp.start,getCycleLen()):null);if(zone==='danger')
     setTimeout(function(){showToast('Période fertile — contraception d\'urgence disponible en pharmacie.','warn');},1800);}
 }
 

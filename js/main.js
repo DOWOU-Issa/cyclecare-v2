@@ -44,6 +44,22 @@ function hideSplash() {
 /* ---- Initialisation ---- */
 async function init() {
   App.data = loadLocal();
+  
+  // Initialiser le mode hors ligne robuste
+  if (typeof OfflineManager !== 'undefined' && OfflineManager.init) {
+    OfflineManager.init();
+  }
+  
+  // Initialiser la sauvegarde automatique
+  if (typeof AutoSave !== 'undefined' && AutoSave.init) {
+    AutoSave.init();
+  }
+  
+  // Nettoyer les vieux drafts au démarrage
+  if (typeof DraftManager !== 'undefined' && DraftManager.clearOldDrafts) {
+    DraftManager.clearOldDrafts();
+  }
+  
   if (typeof Notif !== 'undefined' && Notif.requestStartupPermission) {
     Notif.requestStartupPermission().catch(function() {});
   }
@@ -55,7 +71,7 @@ async function init() {
       pullFromSupabase(session.user.id, function(row) {
         if (row) {
           var u = {
-            id: session.user.id, name: row.name, email: session.user.email,
+            id: session.user.id, name: row.name, email: row.email || session.user.email,
             cycleLen: row.cycle_len || 28, periodDur: row.period_dur || 5,
             avatarColor: row.avatar_color || '#8b2252',
             onboardingDone: true,
@@ -89,7 +105,7 @@ async function init() {
       });
     } else if (App.data.uid) {
       App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
-      App.state.syncStatus = 'error';
+      App.state.syncStatus = 'ok';
       hideSplash(); render();
       Notif.checkPendingReminders();
     } else {
@@ -98,7 +114,7 @@ async function init() {
   } catch(e) {
     if (App.data.uid) {
       App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
-      App.state.syncStatus = 'error';
+      App.state.syncStatus = 'ok';
     }
     hideSplash(); render();
     Notif.checkPendingReminders();

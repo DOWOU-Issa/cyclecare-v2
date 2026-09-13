@@ -22,6 +22,33 @@ function getZone(dateStr, lastStart, cycleLen) {
   return 'safe2';
 }
 
+/* Trouver la période de base pour une date donnée */
+function getBasePeriodForDate(dateStr, periods) {
+  if (!periods || !periods.length) return null;
+
+  // Trouver la période la plus récente qui est avant ou égale à la date
+  var relevantPeriods = periods.filter(function(p) {
+    return p.start && p.start <= dateStr;
+  });
+
+  if (!relevantPeriods.length) return null;
+
+  // Trier par date de début et prendre la plus récente
+  relevantPeriods.sort(function(a, b) {
+    return a.start < b.start ? 1 : -1;
+  });
+
+  return relevantPeriods[0];
+}
+
+/* Calculer la zone pour une date en utilisant la période appropriée */
+function getZoneForDate(dateStr, periods, cycleLen) {
+  var basePeriod = getBasePeriodForDate(dateStr, periods);
+  if (!basePeriod) return null;
+
+  return getZone(dateStr, basePeriod.start, cycleLen);
+}
+
 function getCycleDay(dateStr, lastStart, cycleLen) {
   cycleLen = cycleLen || 28;
   if (!lastStart) return null;
@@ -73,7 +100,8 @@ function calcRisk() {
   if (!unprotected.length) return { level:'none', events:[], daysLate:daysLate };
 
   var events = unprotected.map(function(r) {
-    var zone   = getZone(r.date, lp.start, cl);
+    // Utiliser la période appropriée pour chaque rapport pour cohérence historique
+    var zone   = getZoneForDate(r.date, u.periods, cl) || getZone(r.date, lp.start, cl);
     var hasMed = (u.medications || []).some(function(m) {
       var d = diffDays(r.date, m.date);
       return d >= 0 && d <= 5 && (m.type === 'norLevo' || m.type === 'ellaOne');
