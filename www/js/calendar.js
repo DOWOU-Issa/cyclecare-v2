@@ -49,7 +49,8 @@ function renderCalendrier() {
 
   for (var d=1;d<=dim;d++) {
     var ds   = mStr+'-'+String(d).padStart(2,'0');
-    var zone = lp?getZone(ds,lp.start,cl):null;
+    // Utiliser la période appropriée pour chaque date pour maintenir la cohérence historique
+    var zone = u && u.periods && u.periods.length ? getZoneForDate(ds, u.periods, cl) : null;
     var calCls = periodDays[ds]?'zp':(zone?ZONE_INFO[zone].calCls:'');
     var isT  = ds===today;
     var dots = '';
