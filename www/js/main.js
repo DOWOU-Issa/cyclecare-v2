@@ -71,7 +71,7 @@ async function init() {
       pullFromSupabase(session.user.id, function(row) {
         if (row) {
           var u = {
-            id: session.user.id, name: row.name, email: session.user.email,
+            id: session.user.id, name: row.name, email: row.email || session.user.email,
             cycleLen: row.cycle_len || 28, periodDur: row.period_dur || 5,
             avatarColor: row.avatar_color || '#8b2252',
             onboardingDone: true,

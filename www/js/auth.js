@@ -126,7 +126,7 @@ function onSignedIn(supaUser) {
   pullFromSupabase(supaUser.id, function(row) {
     var uid=supaUser.id; var u;
     if(row) {
-      u={id:uid,name:row.name,email:supaUser.email,
+      u={id:uid,name:row.name,email:row.email||supaUser.email,
          cycleLen:row.cycle_len||28,periodDur:row.period_dur||5,
          avatarColor:row.avatar_color||'#8b2252',onboardingDone:true,
          periods:row.periods||[],rapports:row.rapports||[],
