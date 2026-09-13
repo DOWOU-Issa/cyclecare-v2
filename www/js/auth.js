@@ -435,7 +435,12 @@ function doChangeEmail() {
       // Mettre à jour les données locales
       u.email = newEmail;
       saveLocal(App.data);
-      
+
+      // Synchroniser avec Supabase
+      syncToSupabase().catch(function(err){
+        console.log('Erreur de sync email:', err);
+      });
+
       showChangeEmailErr('Email changé avec succès ! Un email de confirmation a été envoyé à ' + newEmail);
       setTimeout(function(){
         closeChangeEmailModal();
