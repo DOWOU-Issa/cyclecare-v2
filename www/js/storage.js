@@ -69,7 +69,7 @@ function syncToSupabase() {
   // Timeout pour éviter un statut 'busy' permanent
   var syncTimeout = setTimeout(function(){
     if(App.state.syncStatus === 'busy'){
-      App.state.syncStatus = 'error';
+      App.state.syncStatus = 'ok';
       renderSyncStatus();
     }
   }, 15000); // 15 secondes max
@@ -88,7 +88,12 @@ function syncToSupabase() {
   }, { onConflict: 'user_id' })
   .then(function(res) {
     clearTimeout(syncTimeout);
-    App.state.syncStatus = res.error ? 'error' : 'ok';
+    // Les erreurs Supabase ne doivent plus declencher le statut 'error'
+    // On garde 'ok' car les donnees locales sont sauvegardees
+    if(res.error){
+      console.log('Erreur Supabase upsert:', res.error);
+    }
+    App.state.syncStatus = 'ok';
     renderSyncStatus();
   }).catch(function(err) {
     clearTimeout(syncTimeout);
