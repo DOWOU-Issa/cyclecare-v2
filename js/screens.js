@@ -862,12 +862,12 @@ function computeSymptomTrends() {
 function generateMonthlyReport() {
   var u = getUser();
   if (!u) { showToast('Aucune donnée disponible.','err'); return; }
-  
+
   var today = todayStr();
   var currentMonth = today.substring(0, 7);
   var lp = getLastPeriod();
   var cl = getCycleLen();
-  
+
   // Générer un rapport HTML formaté pour meilleure présentation
   var htmlReport = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">';
   htmlReport += '<title>Rapport de Santé Mensuel - CycleCare</title>';
@@ -1042,9 +1042,14 @@ function generateMonthlyReport() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  
-  showToast('Rapport mensuel généré ! Ouvrez le fichier HTML dans votre navigateur pour l\'imprimer en PDF.');
-  
+
+  // Sur Android, proposer d'ouvrir le fichier depuis les téléchargements
+  if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.FilePicker) {
+    showToast('Rapport généré ! Il se trouve dans vos téléchargements.');
+  } else {
+    showToast('Rapport mensuel généré ! Ouvrez le fichier HTML dans votre navigateur pour l\'imprimer en PDF.');
+  }
+
   // Optionnel : proposer d'imprimer directement
   setTimeout(function() {
     if (confirm('Voulez-vous imprimer ce rapport maintenant en PDF ?')) {
