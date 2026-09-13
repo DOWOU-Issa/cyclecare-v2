@@ -10,8 +10,8 @@ Retrouvez les dernières versions prêtes à l'emploi de l'application :
 
 | Plateforme | Format | Lien de téléchargement |
 |---|---|---|
-| **Windows** | `.zip` | [Télécharger pour Windows](https://github.com/DOWOU-Issa/cyclecare-v2/releases/download/v1.0.0/CycleCare.Setup.1.0.0.exe) | 
-| **Android** | `.apk` | [Télécharger pour Android](https://github.com/DOWOU-Issa/cyclecare-v2/releases/download/v1.0.0/CycleCare.apk) | 
+| **Windows** | `.zip` | [Télécharger pour Windows](https://github.com/DOWOU-Issa/cyclecare-v2/releases/download/v2.0.0/CycleCare.Setup.1.0.0.exe) | 
+| **Android** | `.apk` | [Télécharger pour Android](https://github.com/DOWOU-Issa/cyclecare-v2/releases/download/v2.0.0/CycleCare.apk) | 
 
 > **Note Windows :** Décompressez le fichier `.zip` et lancez `CycleCare.exe` dans le dossier `win-unpacked/`.
 > **Note Android :** L'APK est actuellement en version `debug`. Pour une installation sur mobile, vous devrez peut-être autoriser l'installation d'applications de sources inconnues.
