@@ -9,7 +9,9 @@ function renderAccueil() {
   var html  = '';
 
   if (lp) {
-    var zone = getZone(today, lp.start, cl);
+    var u = getUser();
+    // Pour le dashboard actuel, utiliser la dernière période est logique
+    var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : getZone(today, lp.start, cl);
     var zi   = ZONE_INFO[zone];
     var cd   = getCycleDay(today, lp.start, cl);
     var dup  = getDaysUntilPeriod(lp.start, cl);
@@ -191,11 +193,13 @@ function renderActivePeriodPrompt() {
 function renderWeeklyStrip() {
   var lp = getLastPeriod(); if (!lp) return '';
   var cl = getCycleLen();
+  var u = getUser();
   var todayD = todayStr();
   var cells = '';
   for (var i = 0; i < 7; i++) {
     var d    = addDays(todayD, i);
-    var z    = getZone(d, lp.start, cl);
+    // Utiliser la zone historique cohérente pour chaque jour
+    var z    = u && u.periods && u.periods.length ? getZoneForDate(d, u.periods, cl) : getZone(d, lp.start, cl);
     var zi   = ZONE_INFO[z];
     var dObj = parseDateStr(d);
     var wd   = DAYS_FR_SHORT[(dObj.getDay() + 6) % 7];

@@ -254,7 +254,8 @@ function getDailyTip() {
   var lp = getLastPeriod();
   var cl = getCycleLen();
   var today = todayStr();
-  var zone = lp ? getZone(today, lp.start, cl) : null;
+  var u = getUser();
+  var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : (lp ? getZone(today, lp.start, cl) : null);
   
   var phaseArticles = HEALTH_ARTICLES.filter(function(a) {
     return a.phase === 'all' || a.phase === zone;

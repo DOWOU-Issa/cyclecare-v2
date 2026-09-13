@@ -55,7 +55,9 @@ function renderRapportsTab(){
   html+='<div class="card" style="padding:4px 14px;">';
   raps.slice(0,15).forEach(function(r){
     var ri=(u.rapports||[]).findIndex(function(x){return x.date===r.date&&x.protected===r.protected;});
-    var zone=lp?getZone(r.date,lp.start,cl):null;var zi=zone?ZONE_INFO[zone]:null;
+    // Utiliser la zone historique cohérente pour chaque rapport
+    var zone= u && u.periods && u.periods.length ? getZoneForDate(r.date, u.periods, cl) : (lp?getZone(r.date,lp.start,cl):null);
+    var zi=zone?ZONE_INFO[zone]:null;
     var hasMed=(u.medications||[]).some(function(m){var d=diffDays(r.date,m.date);return d>=0&&d<=5&&(m.type==='norLevo'||m.type==='ellaOne');});
     html+='<div class="list-item"><div class="item-icon '+(r.protected?'item-icon-green':'item-icon-red')+'">'
       +'<i class="ti ti-heart" aria-hidden="true"></i></div>'
@@ -824,8 +826,9 @@ function computeSymptomTrends() {
     if (!s.date || !s.items) return;
     var cycleDay = getCycleDay(s.date, lp.start, cl);
     if (cycleDay === null) return;
-    
-    var zone = getZone(s.date, lp.start, cl);
+
+    // Utiliser la zone historique cohérente pour chaque symptôme
+    var zone = u && u.periods && u.periods.length ? getZoneForDate(s.date, u.periods, cl) : (lp?getZone(s.date,lp.start,cl):null);
     if (!zone) return;
     
     (s.items || []).forEach(function(symptom) {
