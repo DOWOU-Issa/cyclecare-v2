@@ -88,7 +88,7 @@ npm install
 # Ajouter la plateforme Android
 npm run cap:add:android
 
-# Synchroniser les fichiers web vers Android
+# IMPORTANT : Synchroniser les fichiers web vers Android AVANT de builder
 npm run cap:sync
 
 # Ouvrir dans Android Studio
@@ -99,6 +99,16 @@ Dans Android Studio :
 - Attendez la fin de la synchronisation Gradle
 - Branchez votre téléphone Android (ou créez un émulateur)
 - Cliquez le bouton **Run** (triangle vert)
+
+### ⚠️ Important : Synchronisation avant build
+
+**Capacitor utilise le dossier `www/` pour Android.** Après chaque modification du code :
+
+1. Exécutez `npm run cap:sync` pour synchroniser les fichiers
+2. Les fichiers sont copiés de `www/` vers `android/app/src/main/assets/`
+3. Rebuild l'APK dans Android Studio
+
+Sans cette synchronisation, l'APK contiendra l'ancien code.
 
 ### Générer un APK signé (pour publication)
 
@@ -115,24 +125,39 @@ Dans Android Studio :
 
 ```
 cyclecare/
-├── index.html                  Point d'entrée unique (SPA)
-├── css/
-│   └── main.css                Styles responsive (desktop + mobile)
-├── js/
-│   ├── supabase-config.js      Configuration connexion Supabase
-│   ├── config.js               Données statiques (zones, médicaments, conseils)
-│   ├── storage.js              Gestion LocalStorage + synchronisation Supabase
-│   ├── cycle.js                Moteur de calcul du cycle menstruel
-│   ├── notifications.js       Système de notifications locales
-│   ├── bot.js                  Assistant IA Gemini via Edge Function
-│   ├── router.js               Navigation et layout (sidebar desktop/topbar mobile)
-│   ├── modals.js               Gestion des modales de saisie
-│   ├── onboarding.js           Parcours d'intégration premier utilisateur
-│   ├── auth.js                 Authentification Supabase (login/inscription)
-│   ├── dashboard.js            Tableau de bord et indicateurs
-│   ├── calendar.js             Calendrier mensuel interactif
-│   ├── screens.js              Écrans : journal, médicaments, conseils, paramètres
-│   └── main.js                 Initialisation et orchestration de l'application
+├── www/                        ⭐ DOSSIER PRINCIPAL pour Web + Android
+│   ├── index.html              Point d'entrée unique (SPA)
+│   ├── css/
+│   │   └── main.css            Styles responsive (desktop + mobile)
+│   └── js/
+│       ├── supabase-config.js  Configuration connexion Supabase
+│       ├── config.js           Données statiques (zones, médicaments, conseils)
+│       ├── storage.js          Gestion LocalStorage + synchronisation Supabase
+│       ├── cycle.js            Moteur de calcul du cycle menstruel
+│       ├── notifications.js   Système de notifications locales
+│       ├── bot.js              Assistant IA Gemini via Edge Function
+│       ├── router.js           Navigation et layout (sidebar desktop/topbar mobile)
+│       ├── modals.js           Gestion des modales de saisie
+│       ├── onboarding.js       Parcours d'intégration premier utilisateur
+│       ├── auth.js             Authentification Supabase (login/inscription)
+│       ├── dashboard.js        Tableau de bord et indicateurs
+│       ├── calendar.js         Calendrier mensuel interactif
+│       ├── screens.js          Écrans : journal, médicaments, conseils, paramètres
+│       └── main.js             Initialisation et orchestration de l'application
+├── css/                        ⭐ COPIE pour Electron build Windows
+│   └── main.css                (synchronisé depuis www/css/main.css)
+├── js/                         ⭐ COPIE pour Electron build Windows
+│   ├── cycle.js                (synchronisé depuis www/js/cycle.js)
+│   ├── calendar.js             (synchronisé depuis www/js/calendar.js)
+│   ├── screens.js              (synchronisé depuis www/js/screens.js)
+│   ├── modals.js               (synchronisé depuis www/js/modals.js)
+│   ├── dashboard.js            (synchronisé depuis www/js/dashboard.js)
+│   ├── config.js               (synchronisé depuis www/js/config.js)
+│   ├── bot.js                  (synchronisé depuis www/js/bot.js)
+│   ├── auth.js                 (synchronisé depuis www/js/auth.js)
+│   ├── main.js                 (synchronisé depuis www/js/main.js)
+│   └── storage.js              (synchronisé depuis www/js/storage.js)
+├── index.html                  ⭐ COPIE pour Electron build Windows
 ├── electron/
 │   └── main.js                 Processus principal pour build Windows
 ├── android/                    Projet Android natif (généré par Capacitor)
@@ -142,6 +167,51 @@ cyclecare/
 ├── package.json                Dépendances npm et scripts de build
 └── README.md                   Documentation du projet
 ```
+
+### ⚠️ Important : Distinction des dossiers sources
+
+- **GitHub Pages & Android** : Utilisent le dossier `www/`
+- **Electron/Windows** : Utilise les fichiers à la racine (`css/`, `js/`, `index.html`)
+- **Synchronisation** : Après modification du code, copier les fichiers de `www/` vers la racine pour Electron
+
+---
+
+## 📋 Améliorations récentes
+
+### v2.1 - Cohérence historique du calendrier (2026-09-13)
+
+**Problème résolu :** Le calendrier devenait incohérent quand de nouvelles données étaient ajoutées, modifiant l'affichage du passé.
+
+**Solution :**
+- Implémentation d'une logique de cohérence historique pour chaque date
+- Chaque jour du calendrier utilise la période appropriée qui était active à ce moment-là
+- L'historique des rapports affiche maintenant les zones correctes (ex: "Période favorable" au lieu de "Règles en cours")
+- Tous les calculs de zones (calendrier, rapports, symptômes, dashboard, bot) utilisent cette logique
+
+**Fichiers modifiés :**
+- `www/js/cycle.js` - Ajout de `getBasePeriodForDate()` et `getZoneForDate()`
+- `www/js/calendar.js` - Calendrier avec cohérence historique
+- `www/js/screens.js` - Historique des rapports cohérent
+- `www/js/modals.js` - Alertes période fertile cohérentes
+- `www/js/dashboard.js` - Dashboard avec cohérence historique
+- `www/js/config.js` - Conseils quotidiens cohérents
+- `www/js/bot.js` - Bot avec cohérence historique
+
+### v2.0 - Corrections de synchronisation (2026-09-13)
+
+**Problèmes résolus :**
+- Statut "Hors ligne" affiché incorrectement au démarrage
+- Email non synchronisé après changement dans l'interface
+- Erreurs Supabase déclenchant le statut "error"
+
+**Solution :**
+- Initialisation du statut à `'ok'` au lieu de `'error'`
+- Synchronisation automatique de l'email après changement
+- Les erreurs Supabase ne déclenchent plus le statut "error"
+- Configuration RLS Supabase corrigée avec filtrage par utilisateur
+- Colonnes manquantes ajoutées dans la base de données
+
+---
 
 ## Architecture technique
 
@@ -163,7 +233,7 @@ cyclecare/
 - **Windows** : Electron pour application desktop
 - **Android** : Capacitor pour application mobile native
 
-vin.exe---
+vin.exe ---
 
 ## Algorithme du cycle
 
