@@ -1,7 +1,9 @@
 /* =============================================
    js/modals.js — Toutes les modales
    ============================================= */
+var _modalTok = 0;
 function openModal(type, payload) {
+  _modalTok++;
   App.state.modal = type;
   App.state.modalPayload = payload || null;
   render();
@@ -10,12 +12,31 @@ function openModal(type, payload) {
 function closeModal() {
   App.state.modal = null;
   App.state.modalPayload = null;
+  App.state.prefillDate = null; /* date choisie depuis le calendrier */
+  App.state._lastModal = null;
+  /* Fermeture animée : la fenêtre redescend, puis on redessine */
+  var ov = document.querySelector('.modal-overlay');
+  if (ov && typeof Motion !== 'undefined' && !Motion.reduced()) {
+    var tok = ++_modalTok;
+    ov.classList.add('closing');
+    setTimeout(function() { if (tok === _modalTok) render(); }, 170);
+    return;
+  }
   render();
+}
+/* Date proposée par défaut dans les formulaires : le jour cliqué dans le
+   calendrier (si on vient de là), sinon aujourd'hui. */
+function defaultEntryDate() {
+  var d = App.state.prefillDate;
+  return d && d <= todayStr() ? d : todayStr();
 }
 function renderModal(){
   if(!App.state.modal) return '';
   var c=getModalContent(App.state.modal); if(!c) return '';
-  return '<div class="modal-overlay" onclick="if(event.target===this)closeModal()" role="dialog" aria-modal="true">'
+  /* Même fenêtre redessinée (ex. étape suivante de la présentation) : pas de nouvelle animation d'ouverture */
+  var same = App.state._lastModal === App.state.modal;
+  App.state._lastModal = App.state.modal;
+  return '<div class="modal-overlay'+(same?' modal-static':'')+'" onclick="if(event.target===this)closeModal()" role="dialog" aria-modal="true">'
     +'<div class="modal-box"><div class="modal-handle"></div>'+c+'</div></div>';
 }
 function getModalContent(t){
@@ -23,6 +44,12 @@ function getModalContent(t){
   switch(t){
     case'logPeriod':     return mLogPeriod(payload);
     case'endPeriod':     return mEndPeriod();
+    case'quickAdd':      return mQuickAdd();
+    case'dayDetail':     return mDayDetail(payload);
+    case'fileSaved':     return mFileSaved();
+    case'saveChoice':    return mSaveChoice();
+    case'tour':          return mTour();
+    case'logDay':        return mLogDay();
     case'logRapport':    return mLogRapport(payload);
     case'logSymptom':    return mLogSymptom(payload);
     case'logMed':        return mLogMed(payload);
@@ -44,7 +71,7 @@ function mLogPeriod(editData){
   var isEdit = !!editData;
   var p = editData || {};
   return mTitle('ti-droplet-filled', isEdit ? 'Modifier ces règles' : 'Enregistrer des règles')
-    + mField('m-ps','Date de début','date', {max:todayStr()}, p.start||todayStr())
+    + mField('m-ps','Date de début','date', {max:todayStr()}, p.start||defaultEntryDate())
     + mField('m-pe','Date de fin (si terminées)','date', {max:todayStr(), min:p.start||undefined, opt:true}, p.end||'')
     + '<div style="font-size:12px;color:var(--text-3);margin:-8px 0 14px;line-height:1.45;">'
     + 'Laissez vide si vos règles sont en cours — vous pourrez indiquer la fin plus tard, qu\'elles durent 3, 4, 5 jours ou plus.</div>'
@@ -84,6 +111,7 @@ function savePeriod(){
     
     return u;
   });
+  App.state.ringReplay = true;
   closeModal();
   showToast(original ? 'Règles mises à jour.' : 'Règles enregistrées.');
 }
@@ -112,6 +140,7 @@ function saveEndPeriod(){
     if(idx>=0){ u.periods[idx].end = endDate; delete u.periods[idx].endEstimated; }
     return u;
   });
+  App.state.ringReplay = true; /* l'anneau se redessine avec la nouvelle durée */
   closeModal();
   var dur = diffDays(ap.start, endDate)+1;
   showToast('Règles terminées : '+dur+' jour'+(dur>1?'s':'')+'.');
@@ -122,7 +151,7 @@ function mLogRapport(editData){
   var isEdit = !!editData;
   var r = editData || {};
   return mTitle('ti-heart', isEdit ? 'Modifier ce rapport' : 'Enregistrer un rapport')
-    +mField('m-rd','Date','date', {max:todayStr()}, r.date||todayStr())
+    +mField('m-rd','Date','date', {max:todayStr()}, r.date||defaultEntryDate())
     +mSelect('m-rp','Protection',[{val:'true',lbl:'Oui — Préservatif ou contraception'},{val:'false',lbl:'Non — Sans protection'}], false, r.protected ? 'true' : 'false')
     +'<div class="card" style="background:var(--z-danger-bg);border-color:var(--z-danger-bd);padding:11px 14px;margin-bottom:8px;">'
     +'<div style="font-size:13px;color:var(--z-danger-tx);line-height:1.5;">'
@@ -159,7 +188,7 @@ function mLogSymptom(editData){
     return'<label class="cb-item" for="'+id+'"><input type="checkbox" id="'+id+'" value="'+sym+'"'+checked+'>'+sym+'</label>';
   }).join('');
   return mTitle('ti-mood-sad', isEdit ? 'Modifier ces symptômes' : 'Enregistrer des symptômes')
-    +mField('m-sd','Date','date', {max:todayStr()}, s.date||todayStr())
+    +mField('m-sd','Date','date', {max:todayStr()}, s.date||defaultEntryDate())
     +'<div class="form-grp"><label class="lbl">Symptômes</label><div class="cb-grid">'+cbs+'</div></div>'
     +mTextarea('m-sn','Notes libres','Autres observations...',true, s.notes||'')
     +mFooter('saveSymptom()');
@@ -188,7 +217,7 @@ function mLogMed(editData){
   var m = editData || {};
   var opts=Object.keys(MEDS_DATA).map(function(k){return{val:k,lbl:MEDS_DATA[k].name};});
   return mTitle('ti-pill', isEdit ? 'Modifier ce médicament' : 'Enregistrer une prise de médicament')
-    +mField('m-md','Date de prise','date', {max:todayStr()}, m.date||todayStr())
+    +mField('m-md','Date de prise','date', {max:todayStr()}, m.date||defaultEntryDate())
     +mSelect('m-mt','Médicament',opts, false, m.type||null)
     +mField('m-mn','Notes', 'text', {opt:true}, m.notes||'')
     +mFooter('saveMed()');
@@ -219,7 +248,7 @@ function mLogMood(editData){
     return '<option value="'+opt.val+'"'+selected+'>'+opt.lbl+'</option>';
   }).join('');
   return mTitle('ti-mood-happy', isEdit ? 'Modifier cette humeur' : 'Enregistrer mon humeur')
-    + mField('m-md','Date','date', {max:todayStr()}, m.date||todayStr())
+    + mField('m-md','Date','date', {max:todayStr()}, m.date||defaultEntryDate())
     + '<div class="form-grp"><label class="lbl">Humeur (1-10)</label>'
     + '<select class="inp" id="m-mv">'+moodOpts+'</select></div>'
     + mTextarea('m-mn','Notes','Comment vous sentez-vous?', true, m.notes||'')
@@ -251,7 +280,7 @@ function mLogEnergy(editData){
     return '<option value="'+opt.val+'"'+selected+'>'+opt.lbl+'</option>';
   }).join('');
   return mTitle('ti-battery-charging', isEdit ? 'Modifier cette énergie' : 'Enregistrer mon énergie')
-    + mField('m-ed','Date','date', {max:todayStr()}, e.date||todayStr())
+    + mField('m-ed','Date','date', {max:todayStr()}, e.date||defaultEntryDate())
     + '<div class="form-grp"><label class="lbl">Niveau d\'énergie (1-8)</label>'
     + '<select class="inp" id="m-ev">'+energyOpts+'</select></div>'
     + mTextarea('m-en','Notes','Comment vous sentez-vous?', true, e.notes||'')
@@ -283,7 +312,7 @@ function mLogTemp(editData){
     return '<option value="'+opt.val+'"'+selected+'>'+opt.lbl+'</option>';
   }).join('');
   return mTitle('ti-thermometer', isEdit ? 'Modifier cette température' : 'Enregistrer ma température')
-    + mField('m-td','Date','date', {max:todayStr()}, t.date||todayStr())
+    + mField('m-td','Date','date', {max:todayStr()}, t.date||defaultEntryDate())
     + '<div class="form-grp"><label class="lbl">Heure de prise (matin, au réveil)</label>'
     + '<select class="inp" id="m-tt">'+timeOpts+'</select></div>'
     + mField('m-tv','Température (°C)','number', {}, t.value||'36.5')
@@ -312,7 +341,7 @@ function mLogWeight(editData){
   var isEdit = !!editData;
   var w = editData || {};
   return mTitle('ti-scale', isEdit ? 'Modifier ce poids' : 'Enregistrer mon poids')
-    + mField('m-wd','Date','date', {max:todayStr()}, w.date||todayStr())
+    + mField('m-wd','Date','date', {max:todayStr()}, w.date||defaultEntryDate())
     + mField('m-wv','Poids (kg)','number', {}, w.value||'60')
     + mTextarea('m-wn','Notes','Moment de la journée, conditions...', true, w.notes||'')
     + mFooter('saveWeight()');
@@ -339,7 +368,7 @@ function mLogThought(editData){
   var isEdit = !!editData;
   var th = editData || {};
   return mTitle('ti-notebook', isEdit ? 'Modifier cette pensée' : 'Nouvelle pensée')
-    + mField('m-thd','Date','date', {max:todayStr()}, th.date||todayStr())
+    + mField('m-thd','Date','date', {max:todayStr()}, th.date||defaultEntryDate())
     + mTextarea('m-tht','Pensée','Exprimez vos ressentis librement...', false, th.text||'')
     + mField('m-thm','Humeur associée (optionnel)','text', {opt:true}, th.mood||'')
     + mFooter('saveThought()');
@@ -391,7 +420,7 @@ function mLogDischarge(editData){
     return '<option value="'+opt.val+'"'+selected+'>'+opt.lbl+'</option>';
   }).join('');
   return mTitle('ti-droplet', isEdit ? 'Modifier ces pertes' : 'Enregistrer des pertes vaginales')
-    + mField('m-dd','Date','date', {max:todayStr()}, d.date||todayStr())
+    + mField('m-dd','Date','date', {max:todayStr()}, d.date||defaultEntryDate())
     + '<div class="form-grp"><label class="lbl">Type de pertes</label>'
     + '<select class="inp" id="m-dt">'+typeOpts+'</select></div>'
     + '<div class="form-grp"><label class="lbl">Quantité</label>'
@@ -509,4 +538,84 @@ function mFooter(fn){
   return'<div class="modal-footer">'
     +'<button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Annuler</button>'
     +'<button class="btn btn-primary" style="flex:1;" onclick="'+fn+'">Enregistrer</button></div>';
+}
+
+/* --- Ajout rapide (bouton « + » de la barre du bas) --- */
+var QUICK_ADD_ITEMS = [
+  { m:'logPeriod',    ico:'ti-droplet-filled',   lbl:'Règles' },
+  { m:'logRapport',   ico:'ti-heart',            lbl:'Rapport' },
+  { m:'logSymptom',   ico:'ti-mood-sad',         lbl:'Symptôme' },
+  { m:'logMood',      ico:'ti-mood-happy',       lbl:'Humeur' },
+  { m:'logTemp',      ico:'ti-thermometer',      lbl:'Température' },
+  { m:'logMed',       ico:'ti-pill',             lbl:'Médicament' },
+  { m:'logEnergy',    ico:'ti-battery-charging', lbl:'Énergie' },
+  { m:'logWeight',    ico:'ti-scale',            lbl:'Poids' },
+  { m:'logDischarge', ico:'ti-droplet',          lbl:'Pertes' },
+  { m:'logThought',   ico:'ti-notebook',         lbl:'Pensée' }
+];
+function quickAddGrid(compact) {
+  var ap = getActivePeriod();
+  var items = QUICK_ADD_ITEMS.slice();
+  /* Règles en cours : le 1er bouton devient « Fin des règles » */
+  if (ap && !App.state.prefillDate) items[0] = { m:'endPeriod', ico:'ti-flag-2', lbl:'Fin des règles' };
+  return '<button class="dayfile-btn" onclick="openModal(\'logDay\')"><i class="ti ti-sun" aria-hidden="true"></i>'
+    + '<span><strong>Ma journée</strong><small>Symptômes, humeur, énergie, température et note en un seul écran</small></span>'
+    + '<i class="ti ti-chevron-right" aria-hidden="true"></i></button>'
+    + '<div class="qa-grid' + (compact ? ' qa-compact' : '') + '">' + items.map(function(it, k) {
+    return '<button class="qa-btn" style="--i:' + k + '" onclick="openModal(\'' + it.m + '\')"><i class="ti ' + it.ico + '" aria-hidden="true"></i>' + it.lbl + '</button>';
+  }).join('') + '</div>';
+}
+function mQuickAdd() {
+  return mTitle('ti-plus', 'Ajouter')
+    + quickAddGrid()
+    + '<div class="modal-footer"><button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Fermer</button></div>';
+}
+
+/* --- Détail d'un jour (clic dans le calendrier) --- */
+function openDayDetail(ds) { App.state.prefillDate = ds; openModal('dayDetail', { date: ds }); }
+function mDayDetail(p) {
+  var ds = p && p.date; if (!ds) return null;
+  var u = getUser(), today = todayStr();
+  var zone = u && u.periods && u.periods.length ? getZoneForDate(ds, u.periods, getCycleLen()) : null;
+  var zi = zone ? ZONE_INFO[zone] : null;
+  var recorded = (u.periods || []).some(function(x) { var e = x.end || addDays(x.start, getEstimatedPeriodDur() - 1); return ds >= x.start && ds <= e; });
+  var isPred = zone === 'period' && !recorded;
+  var html = mTitle('ti-calendar-event', fmtDate(ds));
+
+  if (zi) {
+    html += '<div class="card card-sm ' + zi.cardCls + '" style="margin-bottom:12px;">'
+      + '<span class="zone-chip ' + zi.chipCls + '">' + (isPred ? (ds > today ? 'Règles prévues' : 'Règles non enregistrées') : zone === 'period' ? 'Règles' : zi.lbl) + '</span>'
+      + (ds > today ? ' <span style="font-size:11px;color:var(--text-3);">prévision</span>' : '')
+      + '<div style="font-size:12.5px;margin-top:6px;line-height:1.45;">' + zi.desc + '</div></div>';
+  }
+
+  /* Ce qui a été noté ce jour-là */
+  var rows = [];
+  (u.periods || []).forEach(function(x) { if (x.start === ds) rows.push({ ico:'ti-droplet-filled', lbl:'Début des règles', on:"editPeriodEntry('" + x.start + "')" }); });
+  var add = function(list, ico, lblFn, editFn) {
+    (u[list] || []).forEach(function(e) { if (e.date === ds) rows.push({ ico: ico, lbl: lblFn(e), on: editFn + "('" + esc(e.id) + "')" }); });
+  };
+  add('rapports', 'ti-heart', function(r) { return r.protected ? 'Rapport protégé' : 'Rapport non protégé'; }, 'editRapportEntry');
+  add('symptoms', 'ti-mood-sad', function(s) { return esc((s.items || []).join(', ')); }, 'editSymptomEntry');
+  add('moods', 'ti-mood-happy', function(m) { var o = MOOD_OPTIONS.find(function(x) { return x.val === m.value; }) || {}; return 'Humeur : ' + (o.lbl || m.value); }, 'editMoodEntry');
+  add('energies', 'ti-battery-charging', function(e) { var o = ENERGY_OPTIONS.find(function(x) { return x.val === e.value; }) || {}; return 'Énergie : ' + (o.lbl || e.value); }, 'editEnergyEntry');
+  add('temperatures', 'ti-thermometer', function(t) { return esc(t.value) + ' °C'; }, 'editTempEntry');
+  add('weights', 'ti-scale', function(w) { return esc(w.value) + ' kg'; }, 'editWeightEntry');
+  add('medications', 'ti-pill', function(m) { return esc(m.name || (MEDS_DATA[m.type] || {}).name || m.type); }, 'editMedEntry');
+  add('discharge', 'ti-droplet', function(d) { return 'Pertes : ' + esc((DISCHARGE_OPTIONS.find(function(x) { return x.val === d.type; }) || {}).lbl || d.type); }, 'editDischargeEntry');
+  add('thoughts', 'ti-notebook', function(t) { return esc((t.text || '').slice(0, 60)); }, 'editThoughtEntry');
+
+  if (rows.length) {
+    html += '<div class="sec-title" style="margin-top:0;">Noté ce jour-là</div><div class="card" style="padding:2px 12px;">'
+      + rows.map(function(r) {
+          return '<button class="plus-row" onclick="' + r.on + '"><div class="item-icon item-icon-pink" style="width:30px;height:30px;font-size:15px;"><i class="ti ' + r.ico + '" aria-hidden="true"></i></div>'
+            + '<div class="item-label" style="flex:1;text-align:left;">' + r.lbl + '</div><i class="ti ti-pencil" style="color:var(--text-3);" aria-hidden="true"></i></button>';
+        }).join('') + '</div>';
+  }
+  if (ds <= today) {
+    html += '<div class="sec-title" style="margin-top:6px;">Ajouter pour ce jour</div>' + quickAddGrid();
+  } else {
+    html += '<div style="font-size:12.5px;color:var(--text-3);margin-bottom:8px;">Jour à venir : vous pourrez y ajouter des informations le moment venu.</div>';
+  }
+  return html + '<div class="modal-footer"><button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Fermer</button></div>';
 }

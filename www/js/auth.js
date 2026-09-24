@@ -140,6 +140,7 @@ function onSignedIn(supaUser) {
     App.state.screen=needsOnboarding()?'onboarding':'accueil';
     App.state.onboardingStep=1; render();
     if (typeof Notif !== 'undefined') Notif.rescheduleAll().catch(function(){});
+    setTimeout(function(){ if (typeof maybeShowTour === 'function') maybeShowTour(); }, 400);
   });
 }
 

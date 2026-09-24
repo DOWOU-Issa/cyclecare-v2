@@ -201,6 +201,7 @@ function finishOnboarding() {
   App.state.onboardingStep = 1;
   render();
   showToast('Bienvenue ! Votre tableau de bord est prêt.');
+  setTimeout(function() { if (typeof startTour === 'function' && !tourDone()) startTour(); }, 500);
 }
 
 function needsOnboarding() {

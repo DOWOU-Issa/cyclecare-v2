@@ -2,7 +2,7 @@
 
 Application de suivi du cycle menstruel — Web · Android · Windows
 
-**Version actuelle : 2.2.0**
+**Version actuelle : 2.5.0**
 
 ---
 
@@ -23,6 +23,49 @@ Toutes les versions : [page des releases](https://github.com/DOWOU-Issa/cyclecar
 ---
 
 ## 📋 Nouveautés
+
+### v2.5.0 — Animations et gestes (2026-09-24)
+
+- Fenêtres qui se referment en douceur, et qu'on peut **fermer en les glissant vers le bas** sur mobile.
+- Bouton **+** qui se transforme en **×**, boutons du menu qui apparaissent en cascade.
+- Confirmation avec **coche animée** et **vibration légère** sur Android.
+- Calendrier : le mois glisse, et on peut **changer de mois en balayant** du doigt.
+- Accueil : le jour du cycle défile jusqu'au jour actuel, l'anneau se redessine après « Terminer mes règles ».
+- Statistiques : barres qui montent, courbe de température qui se dessine.
+- Ouverture instantanée avec les données de l'appareil ; blocs de chargement animés au premier lancement.
+- Toutes les animations se désactivent si le téléphone est réglé sur « réduire les animations ».
+
+### v2.4.0 — Nouvelle icône, « Ma journée » et choix du dossier (2026-09-24)
+
+- **Nouvelle icône** (Windows, Android, web) et nouvel écran de démarrage Android.
+- **Présentation au premier lancement** : 3 écrans pour comprendre les couleurs, le bouton + et « Terminer mes règles » (à revoir depuis Paramètres).
+- **Ma journée** : symptômes, humeur, énergie, température et note sur un seul écran.
+- **Rappels intelligents** : « Pensez à noter la fin de vos règles » et « Votre période fertile commence demain ».
+- **Recherche dans le Journal** (ex. « crampes », « NorLevo »).
+- **Choix de l'emplacement des fichiers** : « Choisir le dossier… » (Téléchargements, Documents, carte SD, Google Drive…), emplacement par défaut ou partage direct. Réglable dans Paramètres.
+- **Mode sombre** harmonisé (calendrier, bande des 7 jours) et **animations** douces.
+
+### v2.3.0 — Nouvelle interface, statistiques et rapport PDF (2026-09-24)
+
+**Nouvelle interface**
+- Barre de navigation en bas de l'écran sur mobile, avec un bouton **+** pour tout ajouter en un geste.
+- Tableau de bord repensé : anneau coloré du cycle, jour du cycle, phase et prochaines règles réunis dans une seule carte ; bouton « Terminer mes règles » intégré.
+- Calendrier : touchez un jour pour voir ce qui a été noté et ajouter une saisie à cette date ; les règles **prévues** apparaissent hachurées ; repères visuels (goutte, triangle) en plus des couleurs.
+- Suggestion « Utiliser X jours » quand la durée de cycle observée diffère du réglage.
+- Sur ordinateur : tableau de bord sur 2 colonnes.
+
+**Statistiques** (nouvel écran)
+- Longueur des cycles et durée des règles, avec moyenne et zone habituelle.
+- Courbe de température basale avec détection automatique de la hausse d'ovulation.
+- Symptômes selon la phase du cycle, humeur moyenne par phase, historique des retards.
+
+**Rapport PDF pour le médecin**
+- Synthèse (cycle moyen, régularité, durée des règles), tableau des derniers cycles, graphiques, symptômes, médicaments, notes.
+- Fonctionne hors ligne.
+
+**Corrections**
+- L'alerte « Risque de grossesse » ne tient plus compte des rapports antérieurs aux dernières règles.
+- **Android** : les rapports et exports sont enregistrés dans **Documents › CycleCare** et peuvent être ouverts ou partagés directement (avant, rien n'était téléchargé).
 
 ### v2.2.0 — Fiabilité, sécurité et calendrier adaptatif (2026-09-24)
 
@@ -71,21 +114,30 @@ cyclecare-v2/
 ├── www/                        ⭐ SEULE source de l'app (Web + Android + Windows)
 │   ├── index.html              Point d'entrée (SPA)
 │   ├── css/main.css            Styles responsive
-│   └── js/
-│       ├── supabase-config.js  Connexion Supabase
-│       ├── config.js           Données statiques (zones, médicaments, conseils)
-│       ├── storage.js          Stockage local + synchronisation Supabase (fusion, identifiants)
-│       ├── cycle.js            Moteur de calcul du cycle
-│       ├── notifications.js    Rappels locaux
-│       ├── bot.js              Assistante IA (via Edge Function)
-│       ├── router.js           Navigation et mise en page
-│       ├── modals.js           Formulaires de saisie
-│       ├── onboarding.js       Parcours de première utilisation
-│       ├── auth.js             Connexion, inscription, mot de passe
-│       ├── dashboard.js        Tableau de bord
-│       ├── calendar.js         Calendrier mensuel
-│       ├── screens.js          Journal, médicaments, conseils, paramètres
-│       └── main.js             Initialisation
+│   ├── js/
+│   │   ├── supabase-config.js  Connexion Supabase
+│   │   ├── config.js           Données statiques (zones, médicaments, conseils)
+│   │   ├── storage.js          Stockage local + synchronisation Supabase (fusion, identifiants)
+│   │   ├── cycle.js            Moteur de calcul du cycle
+│   │   ├── notifications.js    Rappels locaux
+│   │   ├── bot.js              Assistante IA (via Edge Function)
+│   │   ├── router.js           Navigation et mise en page
+│   │   ├── modals.js           Formulaires de saisie
+│   │   ├── onboarding.js       Parcours de première utilisation
+│   │   ├── auth.js             Connexion, inscription, mot de passe
+│   │   ├── dashboard.js        Tableau de bord
+│   │   ├── calendar.js         Calendrier mensuel
+│   │   ├── screens.js          Journal, médicaments, conseils, paramètres
+│   │   ├── files.js            Enregistrement / partage de fichiers (Android : Documents › CycleCare)
+│   │   ├── charts.js           Graphiques SVG
+│   │   ├── stats.js            Écran Statistiques
+│   │   ├── report.js           Rapport PDF pour le médecin
+│   │   ├── tour.js             Présentation au premier lancement
+│   │   ├── motion.js           Animations, gestes, vibrations
+│   │   ├── daylog.js           Fiche « Ma journée »
+│   │   └── main.js             Initialisation
+│   └── vendor/jspdf.umd.min.js Génération de PDF (embarqué, fonctionne hors ligne)
+├── assets/                     Icône de l'application (icon.ico Windows, icon.png, icon.svg)
 ├── electron/main.js            App Windows (charge www/index.html)
 ├── android/                    Projet Android (Capacitor)
 ├── supabase/
@@ -142,7 +194,7 @@ Prérequis : Node.js 18+, Android Studio, JDK 17+
 
 ```bash
 npm install
-npm run cap:sync     # copie www/ dans le projet Android (OBLIGATOIRE avant chaque build)
+npm run cap:sync     # copie www/ et les plugins (filesystem, share, notifications) dans le projet Android — OBLIGATOIRE avant chaque build
 npm run cap:open     # ouvre Android Studio
 ```
 

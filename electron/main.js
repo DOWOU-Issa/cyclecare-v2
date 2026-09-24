@@ -23,8 +23,9 @@ function isSafeExternalUrl(url) {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width:  1100,
-    height: 720,
+    width:  1280,   // assez large pour l'accueil sur 2 colonnes
+    height: 820,
+    center: true,
     minWidth:  480,
     minHeight: 600,
     title: 'CycleCare',

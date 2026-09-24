@@ -1366,3 +1366,319 @@ body {
     font-size: 16px;
   }
 }
+
+/* =============================================
+   v2.2 — Navigation du bas, tableau de bord, calendrier, statistiques
+   ============================================= */
+
+/* ---- Barre de navigation du bas (mobile) ---- */
+.mobile-nav { display: none; }
+.bottom-nav {
+  display: flex; align-items: flex-end; justify-content: space-around;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 6px 4px max(6px, env(safe-area-inset-bottom));
+  flex-shrink: 0;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  position: relative; z-index: 60;
+}
+.bnav-item {
+  flex: 1; background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font: inherit; font-size: 10.5px; font-weight: 600; color: var(--text-3);
+  padding: 4px 0; min-height: 44px; justify-content: center;
+}
+.bnav-item i { font-size: 22px; }
+.bnav-item.active { color: var(--primary); }
+.bnav-add {
+  width: 54px; height: 54px; border-radius: 50%;
+  background: var(--primary); color: #fff; border: 4px solid var(--surface);
+  font-size: 26px; cursor: pointer; margin-top: -24px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(139,34,82,0.35);
+  transition: transform .12s;
+}
+.bnav-add:active { transform: scale(0.94); }
+@media (max-width: 767px) {
+  .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .desktop-only { display: none; }
+}
+@media (min-width: 768px) {
+  .bottom-nav { display: none; }
+}
+
+/* ---- Boutons "nus" réutilisables ---- */
+.plus-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: none; border: none; border-bottom: 1px solid var(--border);
+  padding: 12px 0; cursor: pointer; font: inherit; color: var(--text);
+}
+.plus-row:last-child { border-bottom: none; }
+.link-btn {
+  background: none; border: none; padding: 0; margin-top: 6px; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--primary); text-decoration: underline;
+}
+button.qa-btn { font: inherit; color: var(--text); width: 100%; }
+
+/* ---- Tableau de bord : 2 colonnes dès que la zone de contenu est assez large ----
+   (container query : fonctionne aussi dans la fenêtre Windows de 1100 px) */
+.content-area { container-type: inline-size; container-name: content; }
+.dash-grid { display: block; }
+@container content (min-width: 820px) {
+  .page-content.page-wide { max-width: 1320px; }
+  .dash-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(290px, 1fr); gap: 20px; align-items: start; }
+}
+@media (min-width: 768px) {
+  #app { max-width: 1680px; }
+}
+.qa-grid.qa-compact { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.qa-compact .qa-btn { padding: 10px 6px; font-size: 12.5px; gap: 4px; min-height: 0; }
+.qa-compact .qa-btn i { font-size: 20px; }
+.sec-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.sec-title-row .link-btn { margin-top: 0; text-transform: none; letter-spacing: 0; font-size: 12px; }
+
+/* Mon cycle en chiffres */
+.num-card { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+.num-tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; }
+.num-val { font-size: 20px; font-weight: 800; color: var(--primary); letter-spacing: -0.4px; }
+.num-lbl { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+
+/* Mini-calendrier de l'accueil */
+.mini-month { padding: 12px; }
+.mini-month .cal-grid { gap: 3px; margin-bottom: 0; }
+.mini-month .cal-day { min-height: 34px; font-size: 12px; padding: 3px 2px; }
+.mini-month .cal-dlbl { padding: 2px 0; }
+
+/* ---- Carte principale avec anneau du cycle ---- */
+.hero-card { display: flex; gap: 18px; align-items: center; padding: 18px; }
+.hero-ring-wrap { position: relative; flex-shrink: 0; width: 132px; height: 132px; }
+.hero-ring-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+}
+.hero-day { font-size: 30px; font-weight: 800; color: var(--primary); letter-spacing: -1px; line-height: 1; }
+.hero-day-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.hero-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.hero-date { font-size: 12px; color: var(--text-3); text-transform: capitalize; }
+.hero-desc { font-size: 13px; color: var(--text-2); line-height: 1.45; }
+.hero-next { font-size: 13px; color: var(--text); }
+.hero-next i { color: var(--primary); }
+.hero-action { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; margin-top: 2px; }
+.zone-chip i { font-size: 13px; }
+.zone-chip:has(i)::before { display: none; }
+@media (max-width: 420px) {
+  .hero-card { flex-direction: column; text-align: center; }
+  .hero-info { align-items: center; }
+  .hero-action { align-items: center; }
+}
+.suggest-row {
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-mid);
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+}
+.tip-card { border-left: 3px solid #00b894; }
+
+/* ---- Calendrier : jours cliquables, prévisions, repères ---- */
+button.cal-day, button.week-day {
+  border: none; font: inherit; cursor: pointer; width: 100%;
+  -webkit-appearance: none; appearance: none;
+}
+button.cal-day { background: transparent; color: inherit; }
+button.cal-day:focus-visible, button.week-day:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+button.cal-day:hover { filter: brightness(0.96); }
+.cal-day.zp-pred {
+  background: repeating-linear-gradient(135deg, #ffe3ef 0 5px, #fff5fa 5px 10px);
+  box-shadow: inset 0 0 0 1.5px #f096c0; font-weight: 500;
+}
+.cal-day.zp-pred.today { box-shadow: inset 0 0 0 2px var(--primary); }
+.cal-mark { position: absolute; top: 2px; right: 3px; font-size: 9px; opacity: .75; }
+.leg-pred {
+  background: repeating-linear-gradient(135deg, #ffe3ef 0 3px, #fff5fa 3px 6px) !important;
+  border: 1px dashed #f096c0 !important;
+}
+body.dark-mode .cal-day.zp-pred { background: repeating-linear-gradient(135deg, #4a1528 0 5px, #2a2a2e 5px 10px); color: #ffd6e8; }
+
+/* ---- Graphiques ---- */
+.chart-svg { display: block; max-width: 100%; height: auto; }
+.chart-note { font-size: 12px; color: var(--text-3); margin-top: 8px; line-height: 1.45; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.report-cta { display: flex; align-items: center; gap: 12px; }
+.heat-table { display: grid; gap: 4px; }
+.heat-row { display: grid; grid-template-columns: minmax(90px, 1.4fr) repeat(4, 1fr); gap: 4px; align-items: center; }
+.heat-head div { font-size: 10.5px; font-weight: 700; color: var(--text-3); text-align: center; }
+.heat-lbl { font-size: 12px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.heat-cell {
+  position: relative; height: 30px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; color: var(--text);
+  isolation: isolate; background-clip: padding-box;
+}
+/* Intensité : on superpose un voile de la couleur de fond (1 - --a) */
+.heat-cell::after {
+  content: ''; position: absolute; inset: 0; border-radius: 6px; z-index: -1;
+  background: var(--surface-2); opacity: calc(1 - var(--a, 0));
+}
+.heat-cell { z-index: 0; }
+@container content (min-width: 820px) {
+  .dash-grid .qa-grid.qa-compact { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* =============================================
+   v2.4 — Présentation, Ma journée, recherche, mode sombre, animations
+   ============================================= */
+.brand-logo { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; }
+.splash-logo { width: 84px; height: 84px; border-radius: 20px; display: block; margin: 0 auto 12px; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.inp-sm { padding: 6px 8px; font-size: 12.5px; width: auto; max-width: 190px; }
+
+/* ---- Présentation (tour) ---- */
+.tour { text-align: center; }
+.tour-art { display: flex; justify-content: center; margin: 4px 0 12px; min-height: 124px; align-items: center; }
+.tour-ring { position: relative; width: 120px; height: 120px; }
+.tour-plus .bnav-add { margin: 0; pointer-events: none; }
+.tour-title { font-size: 19px; font-weight: 800; color: var(--primary); margin-bottom: 8px; letter-spacing: -0.3px; }
+.tour-text { font-size: 14px; color: var(--text-2); line-height: 1.55; margin-bottom: 12px; }
+.tour-legend { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 12px; }
+.tour-tip { font-size: 12.5px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; text-align: left; line-height: 1.45; margin-bottom: 12px; }
+.tour-dots { display: flex; gap: 6px; justify-content: center; margin: 4px 0 6px; }
+.tour-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-mid); transition: all .2s; }
+.tour-dot.on { width: 22px; border-radius: 4px; background: var(--primary); }
+
+/* ---- Bouton « Ma journée » ---- */
+.dayfile-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 10px;
+  padding: 12px 14px; border-radius: var(--r-md); cursor: pointer; text-align: left; font: inherit;
+  border: 1px solid var(--z-period-bd); background: linear-gradient(135deg, var(--primary-lt), var(--surface));
+  color: var(--text);
+}
+.dayfile-btn > i:first-child { font-size: 26px; color: var(--primary); }
+.dayfile-btn span { flex: 1; display: flex; flex-direction: column; }
+.dayfile-btn small { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.dayfile-btn > i:last-child { color: var(--text-3); }
+
+/* ---- Fiche « Ma journée » ---- */
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-toggle input, .scale-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.chip-toggle span {
+  display: inline-block; padding: 7px 12px; border-radius: 20px; font-size: 13px; cursor: pointer;
+  border: 1px solid var(--border-mid); background: var(--surface); color: var(--text-2); transition: all .12s;
+}
+.chip-toggle input:checked + span { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chip-toggle input:focus-visible + span, .scale-opt input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.scale-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.scale-opt span {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; text-align: center;
+  padding: 8px 2px; border-radius: var(--r-md); border: 1px solid var(--border-mid); background: var(--surface);
+  font-size: 11px; color: var(--text-2); transition: all .12s;
+}
+.scale-opt span i { font-size: 24px; color: var(--text-3); }
+.scale-opt input:checked + span { border-color: var(--primary); background: var(--primary-lt); color: var(--primary); font-weight: 700; }
+.scale-opt input:checked + span i { color: var(--primary); }
+
+/* ---- Recherche du journal ---- */
+.journal-search { position: relative; margin-bottom: 12px; }
+.journal-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 17px; }
+.journal-search .inp { padding-left: 38px; }
+
+/* ---- Mode sombre : cases du calendrier et bande des 7 jours ---- */
+body.dark-mode .cal-day.zp, body.dark-mode .week-day.zp { background: #5a1a38; color: #ffd6e8; }
+body.dark-mode .cal-day.zs, body.dark-mode .week-day.zs { background: #1f3d14; color: #cdeeb9; }
+body.dark-mode .cal-day.zc, body.dark-mode .week-day.zc { background: #16304f; color: #cfe4ff; }
+body.dark-mode .cal-day.zd, body.dark-mode .week-day.zd { background: #4a1818; color: #ffcaca; }
+body.dark-mode .cal-day.today, body.dark-mode .week-day.week-today { box-shadow: inset 0 0 0 2px #ff9cc8; }
+body.dark-mode .list-item { border-bottom-color: var(--border); }
+body.dark-mode .hero-card.z-period { background: #3a1427; }
+body.dark-mode .tip-card, body.dark-mode .num-tile { background: var(--surface-2); }
+body.dark-mode .leg-pred { background: repeating-linear-gradient(135deg, #4a1528 0 3px, #2a2a2e 3px 6px) !important; }
+
+/* ---- Animations (désactivées si l'appareil demande moins de mouvement) ---- */
+@keyframes ringIn { from { opacity: 0; } to { opacity: var(--o, 1); } }
+@keyframes popIn { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.page-enter .ring-seg, .tour .ring-seg { animation: ringIn .35s ease both; }
+.page-enter .ring-marker, .tour .ring-marker { transform-box: fill-box; transform-origin: center; animation: popIn .45s .55s ease both; }
+.page-enter > *, .page-enter .dash-main > *, .page-enter .dash-side > * { animation: fadeUp .28s ease both; }
+.page-enter .dash-side > * { animation-delay: .06s; }
+.cal-day, .week-day, .qa-btn, .bnav-item, .plus-row { transition: transform .12s ease, filter .12s ease; }
+button.cal-day:active, button.week-day:active, .qa-btn:active, .plus-row:active { transform: scale(.96); }
+@media (prefers-reduced-motion: reduce) {
+  .ring-seg, .ring-marker, .page-enter > *, .page-enter .dash-main > *, .page-enter .dash-side > * { animation: none !important; }
+}
+
+/* =============================================
+   v2.5 — Animations
+   ============================================= */
+/* ---- Fenêtres : fermeture animée, pas de ré-animation au ré-affichage ---- */
+@keyframes slideDown { to { transform: translateY(100%); } }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes popBox { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-overlay.closing { animation: fadeOut .17s ease forwards; }
+.modal-overlay.closing .modal-box { animation: slideDown .17s ease-in forwards; }
+.modal-overlay.modal-static, .modal-overlay.modal-static .modal-box { animation: none; }
+.modal-box { transition: transform .2s ease; will-change: transform; }
+.modal-handle { cursor: grab; }
+@media (min-width: 768px) {
+  .modal-box { animation: popBox .18s ease; }
+  .modal-overlay.closing .modal-box { animation: fadeOut .15s ease forwards; }
+}
+
+/* ---- Bouton + : devient × quand le menu est ouvert ---- */
+.bnav-add i { transition: transform .22s cubic-bezier(.3,1.4,.6,1); }
+.bnav-add.open { background: var(--primary-dk); }
+.bnav-add.open i { transform: rotate(45deg); }
+/* Boutons du menu qui apparaissent en cascade */
+@keyframes qaIn { from { opacity: 0; transform: translateY(10px) scale(.92); } to { opacity: 1; transform: none; } }
+.modal-overlay:not(.modal-static) .modal-box .qa-btn { animation: qaIn .26s ease both; animation-delay: calc(var(--i, 0) * 22ms + 60ms); }
+.modal-overlay:not(.modal-static) .modal-box .dayfile-btn { animation: qaIn .26s ease both; }
+
+/* ---- Confirmation : coche animée dans le message ---- */
+.toast { display: none; align-items: center; gap: 8px; }
+.toast.show { display: flex; animation: toastIn .28s cubic-bezier(.3,1.3,.6,1); }
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 14px) scale(.96); } to { opacity: 1; transform: translate(-50%, 0); } }
+.toast-check { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.toast-check circle { stroke-opacity: .45; stroke-dasharray: 63; stroke-dashoffset: 63; animation: drawLine .35s ease forwards; }
+.toast-check path { stroke-dasharray: 16; stroke-dashoffset: 16; animation: drawLine .25s .25s ease forwards; }
+@keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+/* ---- Accueil : anneau rejoué après « Terminer mes règles » ---- */
+.ring-replay .ring-seg { animation: ringIn .35s ease both; }
+.ring-replay .ring-marker { transform-box: fill-box; transform-origin: center; animation: popIn .45s .55s ease both; }
+/* Pastille « aujourd'hui » : 3 pulsations douces */
+@keyframes markerPulse { 0%,100% { stroke-width: 3; } 50% { stroke-width: 6; } }
+.page-enter .ring-marker { animation: popIn .45s .55s ease both, markerPulse 1.2s 1.1s ease-in-out 3; }
+.hero-day { font-variant-numeric: tabular-nums; }
+
+/* ---- Calendrier : le mois glisse ---- */
+@keyframes calNext { from { opacity: 0; transform: translateX(34px); } to { opacity: 1; transform: none; } }
+@keyframes calPrev { from { opacity: 0; transform: translateX(-34px); } to { opacity: 1; transform: none; } }
+.cal-next { animation: calNext .24s ease; }
+.cal-prev { animation: calPrev .24s ease; }
+.cal-swipe { touch-action: pan-y; }
+
+/* ---- Statistiques : barres qui montent, courbe qui se dessine ---- */
+@keyframes barUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes lineDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.page-enter .chart-bar { transform-box: fill-box; transform-origin: bottom; animation: barUp .5s cubic-bezier(.2,.8,.3,1) both; }
+.page-enter .chart-line { stroke-dasharray: 1; animation: lineDraw 1s ease both; }
+.page-enter .chart-dot { animation: fadeUp .3s .8s ease both; }
+
+/* ---- Squelette de chargement ---- */
+.skeleton-page { padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 900px; margin: 0 auto; box-sizing: border-box; }
+.sk { width: 100%; }
+.sk-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.sk {
+  border-radius: var(--r-md);
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface-2) 50%, var(--border) 75%);
+  background-size: 200% 100%; animation: shimmer 1.2s linear infinite;
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ---- Moins d'animations demandé par l'appareil ---- */
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay, .modal-box, .modal-overlay.closing, .modal-overlay.closing .modal-box,
+  .qa-btn, .dayfile-btn, .toast.show, .toast-check *, .ring-replay *, .cal-next, .cal-prev,
+  .chart-bar, .chart-line, .chart-dot, .sk, .page-enter .ring-marker { animation: none !important; }
+  .toast-check circle, .toast-check path { stroke-dashoffset: 0; }
+  .bnav-add i { transition: none; }
+}
+/* Message : largeur adaptée au texte (sinon limité à 50 % de l'écran à cause de left:50%) */
+.toast { width: max-content; max-width: calc(100vw - 32px); }
+.toast span { white-space: normal; }
+.sk { background: linear-gradient(90deg, var(--border-mid) 25%, var(--surface) 50%, var(--border-mid) 75%); background-size: 200% 100%; }

@@ -137,9 +137,12 @@ function calcRisk() {
   var nextP    = getNextPeriodDate(lp.start, cl);
   var daysLate = nextP ? diffDays(nextP, today) : 0;
 
+  /* Seuls les rapports du cycle EN COURS comptent : s'ils ont eu lieu avant
+     le début des dernières règles, l'arrivée des règles a écarté le risque
+     (avant : tous les rapports des 30 derniers jours → fausse alerte
+     « Risque élevé » alors que les règles étaient déjà revenues). */
   var unprotected = (u.rapports || []).filter(function(r) {
-    var ago = diffDays(r.date, today);
-    return !r.protected && ago >= 0 && ago <= 30;
+    return !r.protected && r.date >= lp.start && r.date <= today;
   });
   if (!unprotected.length) return { level:'none', events:[], daysLate:daysLate };
 

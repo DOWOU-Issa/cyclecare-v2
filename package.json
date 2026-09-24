@@ -1,6 +1,6 @@
 {
   "name": "cyclecare",
-  "version": "2.2.0",
+  "version": "2.5.0",
   "description": "Application de suivi du cycle menstruel",
   "private": true,
   "author": {
@@ -24,7 +24,10 @@
     "@capacitor/android": "^5.0.0",
     "@capacitor/cli": "^5.0.0",
     "@capacitor/core": "^5.0.0",
-    "@capacitor/local-notifications": "^5.0.8"
+    "@capacitor/local-notifications": "^5.0.8",
+    "@capacitor/filesystem": "^5.2.2",
+    "@capacitor/share": "^5.0.8",
+    "@capacitor/haptics": "^5.0.8"
   },
   "build": {
     "appId": "com.cyclecare.app",
@@ -46,7 +49,8 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "oneClick": false,
