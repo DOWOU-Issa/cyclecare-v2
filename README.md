@@ -2,305 +2,199 @@
 
 Application de suivi du cycle menstruel — Web · Android · Windows
 
+**Version actuelle : 2.2.0**
+
 ---
 
-## 🚀 Réalisé (Téléchargements)
+## 🚀 Téléchargements
 
-Retrouvez les dernières versions prêtes à l'emploi de l'application :
-
-| Plateforme | Format | Lien de téléchargement |
+| Plateforme | Format | Lien |
 |---|---|---|
-| **Windows** | `.zip` | [Télécharger pour Windows](https://github.com/DOWOU-Issa/cyclecare-v2/releases/download/v2.0.0/CycleCare.Setup.1.0.0.exe) | 
-| **Android** | `.apk` | [Télécharger pour Android](https://github.com/DOWOU-Issa/cyclecare-v2/releases/download/v2.0.0/CycleCare.apk) | 
+| **Web** | Navigateur | [Ouvrir CycleCare](https://dowou-issa.github.io/cyclecare-v2/) |
+| **Windows** | Installateur `.exe` | [Télécharger pour Windows](https://github.com/DOWOU-Issa/cyclecare-v2/releases/latest/download/CycleCare-Setup.exe) |
+| **Android** | `.apk` | [Télécharger pour Android](https://github.com/DOWOU-Issa/cyclecare-v2/releases/latest/download/CycleCare.apk) |
 
-> **Note Windows :** Décompressez le fichier `.zip` et lancez `CycleCare.exe` dans le dossier `win-unpacked/`.
-> **Note Android :** L'APK est actuellement en version `debug`. Pour une installation sur mobile, vous devrez peut-être autoriser l'installation d'applications de sources inconnues.
+Toutes les versions : [page des releases](https://github.com/DOWOU-Issa/cyclecare-v2/releases).
 
----
-
-## Configuration requise avant démarrage
-
-### Étape 1 — Initialiser la base de données Supabase
-
-1. Connectez-vous à votre projet Supabase : https://supabase.com/dashboard
-2. Allez dans **SQL Editor**
-3. Copiez-collez le contenu du fichier `supabase/schema.sql`
-4. Cliquez **Run** — vos tables sont créées
-
-### Étape 2 — Activer la confirmation d'email (optionnel)
-
-Pour simplifier l'inscription (sans vérification email) :
-- Supabase Dashboard → **Authentication** → **Settings**
-- Désactivez **"Enable email confirmations"**
-- Les utilisatrices pourront se connecter immédiatement après l'inscription
+> **Windows :** lancez `CycleCare-Setup.exe` et suivez l'installation. Windows peut afficher « Windows a protégé votre ordinateur » (application non signée) : cliquez **Informations complémentaires → Exécuter quand même**.
+>
+> **Android :** autorisez l'installation depuis des sources inconnues si le téléphone le demande. La mise à jour s'installe par-dessus l'ancienne version, les données sont conservées.
 
 ---
 
-## Déploiement web (GitHub Pages)
+## 📋 Nouveautés
 
-```
-1. Créez un dépôt GitHub (Public)
-2. Uploadez tous les fichiers du projet
-3. Settings → Pages → Deploy from branch → main
-4. Votre site : https://votre-nom.github.io/cyclecare
-```
+### v2.2.0 — Fiabilité, sécurité et calendrier adaptatif (2026-09-24)
 
----
+**Calendrier et cycle**
+- La zone « règles » s'adapte à la durée réelle : des règles de 3 ou 4 jours libèrent les jours suivants en « favorable ».
+- Les zones fertiles suivent la durée du cycle : l'ovulation est estimée ~14 jours avant les règles suivantes (J14 pour 28 jours, J21 pour 35 jours…). Avant, elles étaient fixes quelle que soit la durée.
+- Le bouton « Terminer mes règles » apparaît aussi pour les règles saisies à l'inscription, et sa date par défaut est correcte.
+- L'historique des retards de règles est bien enregistré.
 
-## Application Windows (Electron)
+**Données et synchronisation**
+- Plus aucune perte de données à la reconnexion (humeurs, pensées, températures, poids, pertes étaient effacés).
+- Les saisies faites hors ligne ne sont plus écrasées au démarrage : elles sont envoyées, et fusionnées si un autre appareil a modifié les données entre-temps.
+- Un vrai statut « Non synchronisé » s'affiche en cas d'échec, avec nouvel essai automatique.
+- Chaque entrée a un identifiant unique : deux entrées le même jour ne se confondent plus à la modification ou à la suppression.
+- « Supprimer mon compte » supprime réellement le compte et toutes les données sur le serveur.
+- La déconnexion efface les données de santé de l'appareil.
 
-### Prérequis
-- Node.js 18+ installé : https://nodejs.org
+**Sécurité**
+- Protection contre l'injection de code (XSS) dans les notes, les formulaires et le rapport mensuel.
+- Assistante IA : limite de 50 questions/jour infalsifiable, règles de l'assistante fixées côté serveur, requêtes limitées en taille.
+- Windows : liens externes limités à `https`, navigation bloquée hors de l'app, bac à sable activé, outils développeur retirés.
+- Bibliothèque Supabase en version figée avec vérification d'intégrité (SRI).
 
-### Construction
+**Autres corrections**
+- Le lien « Mot de passe oublié » ouvre bien l'écran de nouveau mot de passe.
+- Les rappels Android s'arrêtent quand les notifications sont désactivées.
+- L'impression du rapport fonctionne sous Windows.
+- Export CSV lisible dans Excel (accents, virgules dans les notes).
+- L'assistante ne reçoit plus chaque message en double.
+- `www/` est désormais la **seule** source de l'application pour le web, Android et Windows.
 
-```bash
-# Dans le dossier du projet
-npm install
+### v2.1 — Cohérence historique du calendrier (2026-09-13)
 
-# Lancer en mode développement
-npm start
+- Chaque jour du calendrier utilise la période qui était active à ce moment-là : ajouter des données ne modifie plus l'affichage du passé.
 
-# Construire l'application Windows
-npm run build:win
-```
+### v2.0 — Corrections de synchronisation (2026-09-13)
 
-Les fichiers de build seront dans `dist-electron/` :
-- `win-unpacked.zip` : Archive portable à décompresser (recommandée pour le déploiement)
-- `win-unpacked/` : Dossier contenant l'exécutable `CycleCare.exe` et ses dépendances
-- `cyclecare-1.0.0-x64.nsis.7z` : Archive de l'installateur NSIS
-
----
-
-## Application Android (Capacitor)
-
-### Prérequis
-- Node.js 18+
-- Android Studio : https://developer.android.com/studio
-- Java Development Kit (JDK) 17+
-
-### Construction
-
-```bash
-# Installer les dépendances
-npm install
-
-# Ajouter la plateforme Android
-npm run cap:add:android
-
-# IMPORTANT : Synchroniser les fichiers web vers Android AVANT de builder
-npm run cap:sync
-
-# Ouvrir dans Android Studio
-npm run cap:open
-```
-
-Dans Android Studio :
-- Attendez la fin de la synchronisation Gradle
-- Branchez votre téléphone Android (ou créez un émulateur)
-- Cliquez le bouton **Run** (triangle vert)
-
-### ⚠️ Important : Synchronisation avant build
-
-**Capacitor utilise le dossier `www/` pour Android.** Après chaque modification du code :
-
-1. Exécutez `npm run cap:sync` pour synchroniser les fichiers
-2. Les fichiers sont copiés de `www/` vers `android/app/src/main/assets/`
-3. Rebuild l'APK dans Android Studio
-
-Sans cette synchronisation, l'APK contiendra l'ancien code.
-
-### Générer un APK signé (pour publication)
-
-Dans Android Studio :
-- **Build** → **Generate Signed Bundle/APK**
-- Choisissez **APK**
-- Créez ou sélectionnez votre keystore
-- **Build Variant** : Release
-- L'APK sera dans `android/app/release/`
+- Statut « Hors ligne » erroné au démarrage corrigé, email synchronisé après changement, règles RLS Supabase corrigées.
 
 ---
 
 ## Structure du projet
 
 ```
-cyclecare/
-├── www/                        ⭐ DOSSIER PRINCIPAL pour Web + Android
-│   ├── index.html              Point d'entrée unique (SPA)
-│   ├── css/
-│   │   └── main.css            Styles responsive (desktop + mobile)
+cyclecare-v2/
+├── www/                        ⭐ SEULE source de l'app (Web + Android + Windows)
+│   ├── index.html              Point d'entrée (SPA)
+│   ├── css/main.css            Styles responsive
 │   └── js/
-│       ├── supabase-config.js  Configuration connexion Supabase
+│       ├── supabase-config.js  Connexion Supabase
 │       ├── config.js           Données statiques (zones, médicaments, conseils)
-│       ├── storage.js          Gestion LocalStorage + synchronisation Supabase
-│       ├── cycle.js            Moteur de calcul du cycle menstruel
-│       ├── notifications.js   Système de notifications locales
-│       ├── bot.js              Assistant IA Gemini via Edge Function
-│       ├── router.js           Navigation et layout (sidebar desktop/topbar mobile)
-│       ├── modals.js           Gestion des modales de saisie
-│       ├── onboarding.js       Parcours d'intégration premier utilisateur
-│       ├── auth.js             Authentification Supabase (login/inscription)
-│       ├── dashboard.js        Tableau de bord et indicateurs
-│       ├── calendar.js         Calendrier mensuel interactif
-│       ├── screens.js          Écrans : journal, médicaments, conseils, paramètres
-│       └── main.js             Initialisation et orchestration de l'application
-├── css/                        ⭐ COPIE pour Electron build Windows
-│   └── main.css                (synchronisé depuis www/css/main.css)
-├── js/                         ⭐ COPIE pour Electron build Windows
-│   ├── cycle.js                (synchronisé depuis www/js/cycle.js)
-│   ├── calendar.js             (synchronisé depuis www/js/calendar.js)
-│   ├── screens.js              (synchronisé depuis www/js/screens.js)
-│   ├── modals.js               (synchronisé depuis www/js/modals.js)
-│   ├── dashboard.js            (synchronisé depuis www/js/dashboard.js)
-│   ├── config.js               (synchronisé depuis www/js/config.js)
-│   ├── bot.js                  (synchronisé depuis www/js/bot.js)
-│   ├── auth.js                 (synchronisé depuis www/js/auth.js)
-│   ├── main.js                 (synchronisé depuis www/js/main.js)
-│   └── storage.js              (synchronisé depuis www/js/storage.js)
-├── index.html                  ⭐ COPIE pour Electron build Windows
-├── electron/
-│   └── main.js                 Processus principal pour build Windows
-├── android/                    Projet Android natif (généré par Capacitor)
-│   ├── app/                    Application Android
-│   └── build.gradle            Configuration Gradle
-├── capacitor.config.json       Configuration multi-plateforme (Capacitor)
-├── package.json                Dépendances npm et scripts de build
-└── README.md                   Documentation du projet
+│       ├── storage.js          Stockage local + synchronisation Supabase (fusion, identifiants)
+│       ├── cycle.js            Moteur de calcul du cycle
+│       ├── notifications.js    Rappels locaux
+│       ├── bot.js              Assistante IA (via Edge Function)
+│       ├── router.js           Navigation et mise en page
+│       ├── modals.js           Formulaires de saisie
+│       ├── onboarding.js       Parcours de première utilisation
+│       ├── auth.js             Connexion, inscription, mot de passe
+│       ├── dashboard.js        Tableau de bord
+│       ├── calendar.js         Calendrier mensuel
+│       ├── screens.js          Journal, médicaments, conseils, paramètres
+│       └── main.js             Initialisation
+├── electron/main.js            App Windows (charge www/index.html)
+├── android/                    Projet Android (Capacitor)
+├── supabase/
+│   ├── schema.sql              Schéma complet de la base
+│   ├── migrations/             Historique des changements SQL
+│   └── functions/
+│       ├── gemini-proxy/       Proxy sécurisé vers Gemini (assistante IA)
+│       └── delete-account/     Suppression définitive du compte (RGPD)
+├── .github/workflows/          Déploiement automatique sur GitHub Pages
+├── capacitor.config.json       Configuration Android (webDir: www)
+└── package.json                Scripts de build et configuration Electron
 ```
 
-### ⚠️ Important : Distinction des dossiers sources
-
-- **GitHub Pages & Android** : Utilisent le dossier `www/`
-- **Electron/Windows** : Utilise les fichiers à la racine (`css/`, `js/`, `index.html`)
-- **Synchronisation** : Après modification du code, copier les fichiers de `www/` vers la racine pour Electron
+Après toute modification dans `www/` :
+- **Web** : un `git push` suffit, GitHub Pages se met à jour automatiquement.
+- **Android** : `npm run cap:sync` puis rebuild dans Android Studio.
+- **Windows** : `npm run build:win`.
 
 ---
 
-## 📋 Améliorations récentes
+## Installation d'un nouveau projet Supabase
 
-### v2.1 - Cohérence historique du calendrier (2026-09-13)
+> Le projet de production est déjà configuré. Cette section sert uniquement à recréer l'environnement.
 
-**Problème résolu :** Le calendrier devenait incohérent quand de nouvelles données étaient ajoutées, modifiant l'affichage du passé.
+1. **Base de données** — Supabase Dashboard → **SQL Editor** → collez `supabase/schema.sql` → **Run**.
+2. **Redirections** — **Authentication → URL Configuration → Redirect URLs** : ajoutez `https://dowou-issa.github.io/cyclecare-v2/` (nécessaire pour « Mot de passe oublié »). Voir aussi `SUPABASE_CONFIG.md`.
+3. **Confirmation d'email** (optionnel) — si elle est activée, l'app demande à l'utilisatrice de confirmer son email avant la première connexion.
+4. **Edge Functions** :
+   ```bash
+   npm install -g supabase
+   supabase login
+   supabase link --project-ref <votre-project-ref>
+   supabase secrets set GEMINI_API_KEY=AIzaSy...   # clé depuis https://aistudio.google.com
+   supabase functions deploy gemini-proxy
+   supabase functions deploy delete-account
+   ```
+   La clé Gemini ne doit jamais apparaître dans le code du site : seule l'Edge Function la connaît.
 
-**Solution :**
-- Implémentation d'une logique de cohérence historique pour chaque date
-- Chaque jour du calendrier utilise la période appropriée qui était active à ce moment-là
-- L'historique des rapports affiche maintenant les zones correctes (ex: "Période favorable" au lieu de "Règles en cours")
-- Tous les calculs de zones (calendrier, rapports, symptômes, dashboard, bot) utilisent cette logique
+---
 
-**Fichiers modifiés :**
-- `www/js/cycle.js` - Ajout de `getBasePeriodForDate()` et `getZoneForDate()`
-- `www/js/calendar.js` - Calendrier avec cohérence historique
-- `www/js/screens.js` - Historique des rapports cohérent
-- `www/js/modals.js` - Alertes période fertile cohérentes
-- `www/js/dashboard.js` - Dashboard avec cohérence historique
-- `www/js/config.js` - Conseils quotidiens cohérents
-- `www/js/bot.js` - Bot avec cohérence historique
+## Build Windows (Electron)
 
-### v2.0 - Corrections de synchronisation (2026-09-13)
+Prérequis : Node.js 18+
 
-**Problèmes résolus :**
-- Statut "Hors ligne" affiché incorrectement au démarrage
-- Email non synchronisé après changement dans l'interface
-- Erreurs Supabase déclenchant le statut "error"
+```bash
+npm install
+npm start            # lancer en mode développement
+npm run build:win    # → dist-electron/CycleCare-Setup.exe
+```
 
-**Solution :**
-- Initialisation du statut à `'ok'` au lieu de `'error'`
-- Synchronisation automatique de l'email après changement
-- Les erreurs Supabase ne déclenchent plus le statut "error"
-- Configuration RLS Supabase corrigée avec filtrage par utilisateur
-- Colonnes manquantes ajoutées dans la base de données
+## Build Android (Capacitor)
+
+Prérequis : Node.js 18+, Android Studio, JDK 17+
+
+```bash
+npm install
+npm run cap:sync     # copie www/ dans le projet Android (OBLIGATOIRE avant chaque build)
+npm run cap:open     # ouvre Android Studio
+```
+
+Dans Android Studio : **Build → Generate Signed Bundle / APK → APK → Release**.
+Utilisez toujours le **même keystore** : sinon la mise à jour ne pourra pas s'installer par-dessus l'ancienne version.
+Avant chaque nouvelle version, augmentez `versionCode` et `versionName` dans `android/app/build.gradle`.
+
+## Publier une nouvelle version
+
+1. Mettre à jour `version` dans `package.json` et `versionCode` / `versionName` dans `android/app/build.gradle`.
+2. Construire l'exe et l'APK (voir ci-dessus).
+3. GitHub → **Releases → Draft a new release** → tag `vX.Y.Z`.
+4. Joindre les fichiers nommés **exactement** `CycleCare-Setup.exe` et `CycleCare.apk` : les liens de téléchargement de ce README pointent toujours vers la dernière release.
 
 ---
 
 ## Architecture technique
 
-### Frontend (JavaScript vanilla)
-- **Single Page Application (SPA)** sans framework moderne
-- **Architecture modulaire** : chaque fichier JS gère un domaine fonctionnel
-- **Stockage local** : LocalStorage pour les données utilisateur (offline-first)
-- **Synchronisation** : Sync automatique avec Supabase quand connecté
-- **Responsive design** : Layout adaptatif desktop/mobile via CSS media queries
+- **Frontend** : JavaScript vanilla, SPA sans framework, offline-first (localStorage), responsive.
+- **Synchronisation** : chaque modification est marquée « à envoyer » jusqu'à confirmation du serveur. Au démarrage, les modifications locales non envoyées sont fusionnées avec le serveur plutôt qu'écrasées.
+- **Backend** : Supabase (Auth, PostgreSQL avec RLS, Edge Functions).
+- **Multi-plateforme** : GitHub Pages (web), Electron (Windows), Capacitor (Android), à partir du même dossier `www/`.
 
-### Backend (Supabase)
-- **Authentification** : Supabase Auth (email/password)
-- **Base de données** : PostgreSQL via Supabase
-- **Edge Functions** : Proxy sécurisé pour l'API Gemini (assistant IA)
-- **Real-time** : Synchronisation des données entre appareils
-
-### Multi-plateforme
-- **Web** : Déploiement statique sur GitHub Pages
-- **Windows** : Electron pour application desktop
-- **Android** : Capacitor pour application mobile native
-
-vin.exe ---
+---
 
 ## Algorithme du cycle
 
-Basé sur le tableau REGLE_CALENDRIER fourni :
+L'ovulation a lieu environ **14 jours avant les règles suivantes**. Les zones sont calculées à partir de la durée du cycle réglée par l'utilisatrice :
 
-| Phase | Jours du cycle | Description |
+| Phase | Cycle de 28 j | Règle générale |
 |---|---|---|
-| Règles | J1 – J5 | Menstruation |
-| Favorable | J6 – J9 | Faible risque |
-| Attention | J10 – J11 | Risque croissant |
-| Risque grossesse | J12 – J17 | Ovulation probable |
-| Favorable | J18 – fin | Faible risque |
+| Règles | J1 – J5 | Durée réelle saisie (5 j par défaut, moyenne des derniers cycles) |
+| Favorable | J6 – J9 | Jusqu'à 5 jours avant l'ovulation |
+| Attention | J10 – J11 | Ovulation −4 et −3 jours |
+| Risque grossesse | J12 – J17 | Ovulation −2 à +3 jours |
+| Favorable | J18 – fin | Jusqu'aux règles suivantes |
 
-La durée exacte du cycle (28, 31 jours, etc.) est configurable par chaque utilisatrice dans les paramètres. Cela décale toutes les zones proportionnellement.
+Exemple avec un cycle de 35 jours : risque de grossesse de J19 à J24.
+Pour les cycles courts, la zone à risque est prioritaire sur l'affichage « règles ».
 
 ---
 
 ## Avertissement médical
 
-Cette application est un outil d'information et de suivi personnel.
-Elle ne remplace pas un avis médical professionnel.
-En cas de doute, consultez un professionnel de santé.
+Cette application est un outil d'information et de suivi personnel. Elle ne remplace pas un avis médical professionnel. Les zones sont des **estimations** : elles ne constituent pas une méthode de contraception. En cas de doute, consultez un professionnel de santé.
 
 ---
 
-## Configuration de l'assistant IA (Gemini via proxy sécurisé)
+## Limites gratuites
 
-### Pourquoi un proxy ?
-La clé API Gemini ne doit jamais apparaître dans le code frontend — n'importe qui peut lire le code source d'une page web. Le proxy Supabase Edge Function agit comme intermédiaire sécurisé : seule la Edge Function (côté serveur) connaît la clé.
-
-### Étape 1 — Obtenir la clé Gemini gratuite
-1. Allez sur **https://aistudio.google.com**
-2. Connectez-vous avec un compte Google
-3. Cliquez **Get API key → Create API key**
-4. Copiez la clé (commence par `AIzaSy...`)
-
-### Étape 2 — Installer Supabase CLI
-```bash
-npm install -g supabase
-supabase login
-```
-
-### Étape 3 — Lier votre projet Supabase
-```bash
-# Dans le dossier du projet
-supabase link --project-ref dszfylxtvytuwtvrpger
-```
-
-### Étape 4 — Stocker la clé comme secret (jamais en dur dans le code)
-```bash
-supabase secrets set GEMINI_API_KEY=AIzaSy...VotreCléIci
-```
-
-### Étape 5 — Déployer la Edge Function
-```bash
-supabase functions deploy gemini-proxy
-```
-
-### Étape 6 — Créer la table de rate limiting
-Dans Supabase Dashboard → SQL Editor, le script `supabase/schema.sql` contient déjà la table `bot_usage`. Si vous l'avez déjà exécuté, relancez uniquement la partie `bot_usage`.
-
-### Vérification
-Après déploiement, l'onglet "Assistante" de l'app est actif pour toutes les utilisatrices connectées. Aucune configuration côté utilisatrice — elles utilisent directement le chat.
-
-### Limites gratuites
-| Ressource | Limite gratuite |
+| Ressource | Limite |
 |---|---|
-| Supabase Edge Functions | 500 000 invocations/mois |
-| Google Gemini 1.5 Flash | 1 500 requêtes/jour |
-| Rate limit par utilisatrice | 50 questions/jour (configurable dans `index.ts`) |
+| Supabase Edge Functions | 500 000 invocations / mois |
+| Google Gemini (gemini-2.5-flash) | selon le quota gratuit de Google AI Studio |
+| Questions à l'assistante | 50 / jour / utilisatrice (`increment_bot_usage` dans `supabase/schema.sql`) |

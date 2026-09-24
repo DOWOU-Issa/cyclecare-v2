@@ -1,6 +1,6 @@
 {
   "name": "cyclecare",
-  "version": "1.0.1",
+  "version": "2.2.0",
   "description": "Application de suivi du cycle menstruel",
   "private": true,
   "author": {
@@ -50,7 +50,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "CycleCare-Setup.${ext}"
     }
   }
 }
