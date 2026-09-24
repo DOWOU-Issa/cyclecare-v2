@@ -1,25 +1,54 @@
 /* =============================================
    js/cycle.js — Moteur de calcul du cycle
-   Basé sur le tableau REGLE_CALENDRIER fourni
    =============================================
-   Zones définies par décalage depuis le début des règles :
-     offset 0–4   → period   (J1–J5)
-     offset 5–8   → safe1    (J6–J9)
-     offset 9–10  → caution  (J10–J11)
-     offset 11–16 → danger   (J12–J17)
-     offset 17+   → safe2    (J18–fin cycle)
+   L'ovulation a lieu environ 14 jours AVANT les règles suivantes :
+   pour un cycle de N jours, elle tombe vers J(N-14)
+   (J14 pour 28 jours, J21 pour 35 jours, J7 pour 21 jours).
+   Les zones sont donc calculées à partir de la durée du cycle :
+
+     règles   : J1 … fin réelle des règles (5 j par défaut)
+     favorable: jusqu'à 4 jours avant l'ovulation
+     attention: ovulation -4 et -3 jours
+     danger   : ovulation -2 … +3 jours (spermatozoïdes ~5 j, ovule ~1 j)
+     favorable: ensuite, jusqu'aux règles suivantes
+
+   Pour un cycle de 28 jours on retrouve exactement le tableau
+   d'origine : J1–J5 règles, J6–J9 favorable, J10–J11 attention,
+   J12–J17 danger, J18+ favorable.
+
+   Priorités : danger > attention > règles > favorable. Avec un cycle
+   court, la période fertile peut commencer pendant les règles : on
+   l'indique plutôt que d'afficher "règles" (sécurité).
+   La durée réelle des règles ne déplace PAS la fenêtre fertile.
    ============================================= */
 
-function getZone(dateStr, lastStart, cycleLen) {
+/* Décalage (0 = J1) du jour d'ovulation estimé */
+function getOvulationOffset(cycleLen) {
+  cycleLen = Math.max(20, Math.min(cycleLen || 28, 45));
+  return cycleLen - 15; /* 28 j → 13 (J14) */
+}
+
+function getZoneBounds(cycleLen) {
+  var ov = getOvulationOffset(cycleLen);
+  return {
+    cautionStart: Math.max(0, ov - 4),
+    dangerStart:  Math.max(0, ov - 2),
+    dangerEnd:    ov + 4            /* exclu */
+  };
+}
+
+function getZone(dateStr, lastStart, cycleLen, periodDur) {
   cycleLen = cycleLen || 28;
   if (!lastStart) return null;
+  periodDur = Math.max(1, Math.round(periodDur || 5));
+  var b = getZoneBounds(cycleLen);
   var offset   = diffDays(lastStart, dateStr);
   var cycleDay = ((offset % cycleLen) + cycleLen) % cycleLen;
-  if (cycleDay < 5)  return 'period';
-  if (cycleDay < 9)  return 'safe1';
-  if (cycleDay < 11) return 'caution';
-  if (cycleDay < 17) return 'danger';
-  return 'safe2';
+  var beforeOv = cycleDay < b.dangerEnd;
+  if (cycleDay >= b.dangerStart  && cycleDay < b.dangerEnd)   return 'danger';
+  if (cycleDay >= b.cautionStart && cycleDay < b.dangerStart) return 'caution';
+  if (cycleDay < periodDur)  return 'period';
+  return beforeOv ? 'safe1' : 'safe2';
 }
 
 /* Trouver la période de base pour une date donnée */
@@ -41,12 +70,25 @@ function getBasePeriodForDate(dateStr, periods) {
   return relevantPeriods[0];
 }
 
+/* Durée (en jours) à utiliser pour la zone "règles" d'une période donnée,
+   pour une date donnée :
+   - date dans le cycle réel de cette période ET fin renseignée → durée réelle
+   - règles en cours (pas de fin) → estimation (moyenne observée ou réglage)
+   - cycles futurs prédits → estimation */
+function getPeriodLenForZone(basePeriod, dateStr, cycleLen) {
+  cycleLen = cycleLen || 28;
+  var offset = diffDays(basePeriod.start, dateStr);
+  if (offset < cycleLen && basePeriod.end) {
+    return diffDays(basePeriod.start, basePeriod.end) + 1;
+  }
+  return getEstimatedPeriodDur();
+}
+
 /* Calculer la zone pour une date en utilisant la période appropriée */
 function getZoneForDate(dateStr, periods, cycleLen) {
   var basePeriod = getBasePeriodForDate(dateStr, periods);
   if (!basePeriod) return null;
-
-  return getZone(dateStr, basePeriod.start, cycleLen);
+  return getZone(dateStr, basePeriod.start, cycleLen, getPeriodLenForZone(basePeriod, dateStr, cycleLen));
 }
 
 function getCycleDay(dateStr, lastStart, cycleLen) {
@@ -74,12 +116,14 @@ function getDaysUntilPeriod(lastStart, cycleLen) {
 function getEstimatedPeriodDur() {
   var u = getUser(); if (!u) return 5;
   var durs = (u.periods || [])
-    .filter(function(p) { return p.end; })
+    .filter(function(p) { return p.start && p.end && !p.endEstimated; }) /* fins réelles uniquement */
     .map(function(p) { return diffDays(p.start, p.end) + 1; })
     .filter(function(d) { return d >= 1 && d <= 12; });
-  if (durs.length >= 2) {
+  if (durs.length) {
+    /* Moyenne des 6 dernières règles terminées (les plus récentes comptent) */
+    durs = durs.slice(-6);
     var avg = durs.reduce(function(a, b) { return a + b; }, 0) / durs.length;
-    return Math.max(2, Math.round(avg));
+    return Math.max(1, Math.round(avg));
   }
   return getPeriodDur();
 }
@@ -101,7 +145,7 @@ function calcRisk() {
 
   var events = unprotected.map(function(r) {
     // Utiliser la période appropriée pour chaque rapport pour cohérence historique
-    var zone   = getZoneForDate(r.date, u.periods, cl) || getZone(r.date, lp.start, cl);
+    var zone   = getZoneForDate(r.date, u.periods, cl) || getZone(r.date, lp.start, cl, getEstimatedPeriodDur());
     var hasMed = (u.medications || []).some(function(m) {
       var d = diffDays(r.date, m.date);
       return d >= 0 && d <= 5 && (m.type === 'norLevo' || m.type === 'ellaOne');
@@ -198,27 +242,30 @@ function computeCycleReliability() {
    Enregistre et analyse les retards de règles pour
    détecter les patterns d'irrégularité.
    ============================================= */
-function recordPeriodDelay(expectedDate, actualDate) {
-  var u = getUser();
-  if (!u) return;
-  
+/* Si `target` (objet utilisateur en cours de modification dans un
+   updateUser) est fourni, on le modifie directement : appeler updateUser
+   ici à l'intérieur d'un autre updateUser ferait perdre l'enregistrement
+   (l'appel externe écrase avec sa propre copie). */
+function recordPeriodDelay(expectedDate, actualDate, target) {
   var delay = diffDays(expectedDate, actualDate);
   if (delay <= 0) return; /* Pas de retard */
-  
-  u.periodDelays = u.periodDelays || [];
-  u.periodDelays.push({
-    expected: expectedDate,
-    actual: actualDate,
-    delay: delay,
-    recordedAt: todayStr()
-  });
-  
-  /* Garder seulement les 12 derniers retards */
-  if (u.periodDelays.length > 12) {
-    u.periodDelays = u.periodDelays.slice(-12);
+
+  function apply(u) {
+    u.periodDelays = u.periodDelays || [];
+    u.periodDelays.push({
+      expected: expectedDate,
+      actual: actualDate,
+      delay: delay,
+      recordedAt: todayStr()
+    });
+    /* Garder seulement les 12 derniers retards */
+    if (u.periodDelays.length > 12) u.periodDelays = u.periodDelays.slice(-12);
+    return u;
   }
-  
-  updateUser(function(u) { return u; });
+
+  if (target) { apply(target); return; }
+  if (!getUser()) return;
+  updateUser(apply);
 }
 
 function getPeriodDelays() {
@@ -236,18 +283,17 @@ function getAverageDelay() {
   return Math.round(total / delays.length);
 }
 
-/* Prédiction de l'ovulation - généralement J14 pour un cycle de 28 jours */
+/* Prédiction de l'ovulation : ~14 jours avant les règles suivantes
+   (avant : durée/2, faux pour les cycles différents de 28 jours) */
 function getPredictedOvulationDate(lastStart, cycleLen) {
   if (!lastStart) return null;
-  cycleLen = cycleLen || 28;
-  return addDays(lastStart, Math.floor(cycleLen / 2) - 1);
+  return addDays(lastStart, getOvulationOffset(cycleLen || 28));
 }
 
 function getOvulationWindow(lastStart, cycleLen) {
   if (!lastStart) return null;
-  cycleLen = cycleLen || 28;
-  var ovulationDay = Math.floor(cycleLen / 2) - 1;
-  var start = addDays(lastStart, ovulationDay - 2);
+  var ovulationDay = getOvulationOffset(cycleLen || 28);
+  var start = addDays(lastStart, Math.max(0, ovulationDay - 2));
   var end = addDays(lastStart, ovulationDay + 2);
   return { start: start, end: end, peak: addDays(lastStart, ovulationDay) };
 }

@@ -1,6 +1,6 @@
 {
   "name": "cyclecare",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Application de suivi du cycle menstruel",
   "private": true,
   "author": {
@@ -33,22 +33,10 @@
       "output": "dist-electron"
     },
     "files": [
-      "index.html",
-      "css/**",
-      "js/**",
+      "www/**",
       "electron/**",
-      "node_modules/**",
-      "assets/**"
-    ],
-    "extraResources": [
-      {
-        "from": "css",
-        "to": "css"
-      },
-      {
-        "from": "js",
-        "to": "js"
-      }
+      "assets/**",
+      "package.json"
     ],
     "win": {
       "target": [
@@ -58,8 +46,7 @@
             "x64"
           ]
         }
-      ],
-      "icon": "assets/icon.ico"
+      ]
     },
     "nsis": {
       "oneClick": false,

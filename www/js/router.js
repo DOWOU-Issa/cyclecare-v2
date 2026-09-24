@@ -35,7 +35,9 @@ function renderLayout(content) {
   var name   = (u && u.name) ? u.name : '';
   var init   = name.charAt(0).toUpperCase() || '?';
   var aColor = (u && u.avatarColor) ? u.avatarColor : '#8b2252';
-  var hasKey = !!(typeof getGeminiKey !== 'undefined' && getGeminiKey());
+  /* La clé Gemini est côté serveur (edge function) : plus besoin d'indicateur.
+     (getGeminiKey n'existait plus → le point "clé non configurée" restait affiché) */
+  var hasKey = true;
 
   var navItems = NAV_TABS.map(function(t) {
     var active = App.state.screen === t.id ? ' active' : '';

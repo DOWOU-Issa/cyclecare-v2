@@ -12,7 +12,8 @@ function render() {
   var mroot = document.getElementById('modal-root');
   if (!view || !mroot) return;
 
-  if (!App.data || !App.data.uid) {
+  /* Réinitialisation du mot de passe : prioritaire même si une session existe */
+  if (!App.data || !App.data.uid || App.state.recovery) {
     view.innerHTML = renderAuth(); mroot.innerHTML = ''; return;
   }
 
@@ -63,69 +64,43 @@ async function init() {
   if (typeof Notif !== 'undefined' && Notif.requestStartupPermission) {
     Notif.requestStartupPermission().catch(function() {});
   }
-  try {
-    var sessionRes = await db.auth.getSession();
-    var session = sessionRes.data && sessionRes.data.session;
+  /* Lien "mot de passe oublié" : Supabase renvoie vers l'app avec type=recovery */
+  var isRecoveryLink = /type=recovery/.test(window.location.hash || '') || /type=recovery/.test(window.location.search || '');
 
-    if (session) {
-      pullFromSupabase(session.user.id, function(row) {
-        if (row) {
-          var u = {
-            id: session.user.id, name: row.name, email: row.email || session.user.email,
-            cycleLen: row.cycle_len || 28, periodDur: row.period_dur || 5,
-            avatarColor: row.avatar_color || '#8b2252',
-            onboardingDone: true,
-            darkMode: row.dark_mode || false,
-            notifPrefs: row.notif_prefs || { enabled:false, pillReminder:false, pillHour:20 },
-            periods:     row.periods     || [],
-            rapports:    row.rapports    || [],
-            symptoms:    row.symptoms    || [],
-            medications: row.medications || [],
-            moods:       row.moods       || [],
-            energies:    row.energies    || [],
-            temperatures: row.temperatures || [],
-            weights:     row.weights     || [],
-            thoughts:    row.thoughts    || [],
-            discharge:   row.discharge   || [],
-            periodDelays: row.period_delays || [],
-            createdAt: row.created_at ? row.created_at.split('T')[0] : todayStr()
-          };
-          App.data.uid = session.user.id;
-          App.data.users[session.user.id] = u;
-          saveLocal(App.data);
-          App.state.syncStatus = 'ok';
-          
-          /* Appliquer le mode sombre si activé */
-          if(u.darkMode) document.body.classList.add('dark-mode');
-        }
-        App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
-        hideSplash(); render();
-        /* Vérifier les rappels "web" au démarrage */
-        Notif.checkPendingReminders();
-      });
-    } else if (App.data.uid) {
-      App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
-      App.state.syncStatus = 'ok';
+  db.auth.onAuthStateChange(function(event, session) {
+    if (event === 'PASSWORD_RECOVERY') {
+      App.state.authMode = 'reset-confirm';
+      App.state.recovery = true;
       hideSplash(); render();
-      Notif.checkPendingReminders();
-    } else {
-      hideSplash(); render();
+      return;
     }
-  } catch(e) {
-    if (App.data.uid) {
-      App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
-      App.state.syncStatus = 'ok';
-    }
-    hideSplash(); render();
-    Notif.checkPendingReminders();
-  }
-
-  db.auth.onAuthStateChange(function(event) {
     if (event === 'SIGNED_OUT') {
       App.data.uid = null; saveLocal(App.data);
       App.state.screen = 'auth'; render();
     }
   });
+
+  if (isRecoveryLink) { App.state.authMode = 'reset-confirm'; App.state.recovery = true; }
+
+  try {
+    var sessionRes = await db.auth.getSession();
+    var session = sessionRes.data && sessionRes.data.session;
+
+    if (session) {
+      /* Même logique que onSignedIn : ne jamais écraser des données locales non envoyées */
+      var u = await hydrateUserFromServer(session.user);
+      if (u && u.darkMode) document.body.classList.add('dark-mode');
+      App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
+    } else if (App.data.uid) {
+      /* Session expirée mais données locales présentes : mode hors ligne */
+      App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
+    }
+  } catch(e) {
+    console.warn('Init :', e);
+    if (App.data.uid) App.state.screen = needsOnboarding() ? 'onboarding' : 'accueil';
+  }
+  hideSplash(); render();
+  if (App.data.uid && typeof Notif !== 'undefined') Notif.checkPendingReminders();
 }
 
 document.addEventListener('keydown', function(e) {

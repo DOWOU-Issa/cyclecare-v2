@@ -24,7 +24,8 @@
   <div id="toast" class="toast"></div>
 
   <!-- Supabase (doit être chargé en premier) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Version figée + empreinte SRI : un CDN compromis ne peut pas injecter de code -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.js" integrity="sha384-K1nraABOP/zFehpLIUksXebbs7jMpB8gYMlb+uhVKZcWT/9Vkq1+qhv6ndC+1Yuz" crossorigin="anonymous"></script>
 
   <!-- Application — ordre d'inclusion critique -->
   <script src="js/supabase-config.js"></script>

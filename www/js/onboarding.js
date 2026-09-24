@@ -153,7 +153,13 @@ function obNextStep() {
       updateUser(function(u) {
         /* Supprimer l'éventuelle période de l'inscription et la remplacer */
         u.periods = u.periods.filter(function(p){ return p.start !== lp; });
-        u.periods.push({ start: lp, end: addDays(lp, (u.periodDur||5)-1), flow: 'normal' });
+        /* Fin non connue : si les règles sont peut-être encore en cours, on laisse
+           la fin vide (le bouton « Terminer mes règles » s'affichera). Sinon on
+           l'estime, avec un drapeau pour ne pas fausser la durée moyenne observée. */
+        var estEnd = addDays(lp, (u.periodDur||5)-1);
+        var entry  = { start: lp, end: null, flow: 'normal' };
+        if (estEnd < todayStr()) { entry.end = estEnd; entry.endEstimated = true; }
+        u.periods.push(entry);
         return u;
       });
     }

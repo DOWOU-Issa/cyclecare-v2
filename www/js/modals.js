@@ -77,7 +77,7 @@ function savePeriod(){
         var prevCycleLen = getCycleLen();
         var expectedDate = addDays(prevPeriod.start, prevCycleLen);
         if (diffDays(expectedDate, s) > 0) {
-          recordPeriodDelay(expectedDate, s);
+          recordPeriodDelay(expectedDate, s, u); /* modifie u directement */
         }
       }
     }
@@ -100,7 +100,7 @@ function mEndPeriod(){
     + '<div style="font-size:13px;color:var(--text-3);margin-bottom:16px;line-height:1.5;">'
     + 'Vos règles ont commencé le <strong>'+fmtDate(ap.start)+'</strong>. Indiquez la date à laquelle elles se sont arrêtées — '
     + 'cela peut être 3, 4, 5 jours ou plus, chaque cycle est différent.</div>'
-    + mField('m-end-date','Date de fin réelle','date', todayStr(), {min:ap.start, max:todayStr()})
+    + mField('m-end-date','Date de fin réelle','date', {min:ap.start, max:todayStr()}, todayStr())
     + mFooter('saveEndPeriod()');
 }
 function saveEndPeriod(){
@@ -109,7 +109,7 @@ function saveEndPeriod(){
   if (endDate < ap.start) { showToast('La date de fin doit être après le début.','err'); return; }
   updateUser(function(u){
     var idx = u.periods.findIndex(function(p){ return p.start===ap.start; });
-    if(idx>=0) u.periods[idx].end = endDate;
+    if(idx>=0){ u.periods[idx].end = endDate; delete u.periods[idx].endEstimated; }
     return u;
   });
   closeModal();
@@ -122,7 +122,7 @@ function mLogRapport(editData){
   var isEdit = !!editData;
   var r = editData || {};
   return mTitle('ti-heart', isEdit ? 'Modifier ce rapport' : 'Enregistrer un rapport')
-    +mField('m-rd','Date','date', r.date||todayStr(),{max:todayStr()})
+    +mField('m-rd','Date','date', {max:todayStr()}, r.date||todayStr())
     +mSelect('m-rp','Protection',[{val:'true',lbl:'Oui — Préservatif ou contraception'},{val:'false',lbl:'Non — Sans protection'}], false, r.protected ? 'true' : 'false')
     +'<div class="card" style="background:var(--z-danger-bg);border-color:var(--z-danger-bd);padding:11px 14px;margin-bottom:8px;">'
     +'<div style="font-size:13px;color:var(--z-danger-tx);line-height:1.5;">'
@@ -137,7 +137,7 @@ function saveRapport(){
   updateUser(function(u){
     u.rapports = u.rapports || [];
     if (original) {
-      u.rapports = u.rapports.filter(function(r){ return !(r.date === original.date && r.protected === original.protected); });
+      u.rapports = u.rapports.filter(function(r){ return r.id !== original.id; });
     }
     u.rapports.push({date:d,protected:p});
     u.rapports.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -145,7 +145,7 @@ function saveRapport(){
   });
   closeModal();
   showToast(original ? 'Rapport modifié.' : 'Rapport enregistré.');
-  if(!p){var lp=getLastPeriod();var u=getUser();var zone= u && u.periods && u.periods.length ? getZoneForDate(d, u.periods, getCycleLen()) : (lp?getZone(d,lp.start,getCycleLen()):null);if(zone==='danger')
+  if(!p){var lp=getLastPeriod();var u=getUser();var zone= u && u.periods && u.periods.length ? getZoneForDate(d, u.periods, getCycleLen()) : (lp?getZone(d,lp.start,getCycleLen(),getEstimatedPeriodDur()):null);if(zone==='danger')
     setTimeout(function(){showToast('Période fertile — contraception d\'urgence disponible en pharmacie.','warn');},1800);}
 }
 
@@ -159,7 +159,7 @@ function mLogSymptom(editData){
     return'<label class="cb-item" for="'+id+'"><input type="checkbox" id="'+id+'" value="'+sym+'"'+checked+'>'+sym+'</label>';
   }).join('');
   return mTitle('ti-mood-sad', isEdit ? 'Modifier ces symptômes' : 'Enregistrer des symptômes')
-    +mField('m-sd','Date','date', s.date||todayStr(),{max:todayStr()})
+    +mField('m-sd','Date','date', {max:todayStr()}, s.date||todayStr())
     +'<div class="form-grp"><label class="lbl">Symptômes</label><div class="cb-grid">'+cbs+'</div></div>'
     +mTextarea('m-sn','Notes libres','Autres observations...',true, s.notes||'')
     +mFooter('saveSymptom()');
@@ -172,7 +172,7 @@ function saveSymptom(){
   updateUser(function(u){
     u.symptoms = u.symptoms || [];
     if (original) {
-      u.symptoms = u.symptoms.filter(function(s){ return s.date !== original.date; });
+      u.symptoms = u.symptoms.filter(function(s){ return s.id !== original.id; });
     }
     u.symptoms.push({date:d,items:items,notes:val('m-sn')||null});
     u.symptoms.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -200,7 +200,7 @@ function saveMed(){
   updateUser(function(u){
     u.medications = u.medications || [];
     if (original) {
-      u.medications = u.medications.filter(function(m){ return m.date !== original.date; });
+      u.medications = u.medications.filter(function(m){ return m.id !== original.id; });
     }
     u.medications.push({date:d,type:t,name:info.name||t,notes:val('m-mn')||null});
     u.medications.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -232,7 +232,7 @@ function saveMood(){
   updateUser(function(u){
     u.moods = u.moods || [];
     if (original) {
-      u.moods = u.moods.filter(function(m){ return m.date !== original.date; });
+      u.moods = u.moods.filter(function(m){ return m.id !== original.id; });
     }
     u.moods.push({date:d,value:v,notes:val('m-mn')||null});
     u.moods.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -264,7 +264,7 @@ function saveEnergy(){
   updateUser(function(u){
     u.energies = u.energies || [];
     if (original) {
-      u.energies = u.energies.filter(function(e){ return e.date !== original.date; });
+      u.energies = u.energies.filter(function(e){ return e.id !== original.id; });
     }
     u.energies.push({date:d,value:v,notes:val('m-en')||null});
     u.energies.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -297,7 +297,7 @@ function saveTemp(){
   updateUser(function(u){
     u.temperatures = u.temperatures || [];
     if (original) {
-      u.temperatures = u.temperatures.filter(function(t){ return t.date !== original.date; });
+      u.temperatures = u.temperatures.filter(function(t){ return t.id !== original.id; });
     }
     u.temperatures.push({date:d,time:val('m-tt')||'07:00',value:v,notes:val('m-tn')||null});
     u.temperatures.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -324,7 +324,7 @@ function saveWeight(){
   updateUser(function(u){
     u.weights = u.weights || [];
     if (original) {
-      u.weights = u.weights.filter(function(w){ return w.date !== original.date; });
+      u.weights = u.weights.filter(function(w){ return w.id !== original.id; });
     }
     u.weights.push({date:d,value:v,notes:val('m-wn')||null});
     u.weights.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -351,7 +351,7 @@ function saveThought(){
   updateUser(function(u){
     u.thoughts = u.thoughts || [];
     if (original) {
-      u.thoughts = u.thoughts.filter(function(th){ return th.date !== original.date; });
+      u.thoughts = u.thoughts.filter(function(th){ return th.id !== original.id; });
     }
     u.thoughts.push({date:d,text:t,mood:val('m-thm')||null});
     u.thoughts.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -405,7 +405,7 @@ function saveDischarge(){
   updateUser(function(u){
     u.discharge = u.discharge || [];
     if (original) {
-      u.discharge = u.discharge.filter(function(d){ return d.date !== original.date; });
+      u.discharge = u.discharge.filter(function(d){ return d.id !== original.id; });
     }
     u.discharge.push({date:d,type:val('m-dt'),amount:val('m-da'),notes:val('m-dn')||null});
     u.discharge.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
@@ -485,9 +485,9 @@ function mField(id,label,type,opts,defVal){
   var sfx=opts.opt?' <span style="text-transform:none;font-weight:400;font-size:10px;">(optionnel)</span>':'';
   return'<div class="form-grp"><label class="lbl" for="'+id+'">'+label+sfx+'</label>'
     +'<input class="inp" type="'+(type||'text')+'" id="'+id+'" '
-    +(defVal!==undefined&&defVal!==''?'value="'+defVal+'" ':'')
-    +(opts.max?'max="'+opts.max+'" ':'')
-    +(opts.min?'min="'+opts.min+'" ':'')
+    +(defVal!==undefined&&defVal!==null&&defVal!==''?'value="'+esc(defVal)+'" ':'')
+    +(opts.max?'max="'+esc(opts.max)+'" ':'')
+    +(opts.min?'min="'+esc(opts.min)+'" ':'')
     +'/></div>';
 }
 function mSelect(id,label,options,opt,selectedVal){
@@ -496,7 +496,7 @@ function mSelect(id,label,options,opt,selectedVal){
     +'<select class="inp" id="'+id+'">'+(opt?'<option value="">— Choisir —</option>':'')
     +options.map(function(o){
         var sel=(selectedVal!=null&&o.val===selectedVal)?' selected':'';
-        return'<option value="'+o.val+'"'+sel+'>'+o.lbl+'</option>';
+        return'<option value="'+esc(o.val)+'"'+sel+'>'+esc(o.lbl)+'</option>';
      }).join('')
     +'</select></div>';
 }

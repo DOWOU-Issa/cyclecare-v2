@@ -13,6 +13,8 @@ var DAYS_FR_SHORT = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
      J6–J9   (offset 5–8)  : Favorable (faible risque)
      J10–J11 (offset 9–10) : Attention (transition)
      J12–J17 (offset 11–16): DANGER — Ovulation / Risque grossesse
+     (valeurs pour un cycle de 28 jours — décalées selon la durée du
+      cycle, voir getZoneBounds dans cycle.js)
      J18–fin (offset 17+)  : Favorable (faible risque)
 */
 var ZONE_INFO = {
@@ -255,7 +257,7 @@ function getDailyTip() {
   var cl = getCycleLen();
   var today = todayStr();
   var u = getUser();
-  var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : (lp ? getZone(today, lp.start, cl) : null);
+  var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : (lp ? getZone(today, lp.start, cl, getEstimatedPeriodDur()) : null);
   
   var phaseArticles = HEALTH_ARTICLES.filter(function(a) {
     return a.phase === 'all' || a.phase === zone;
@@ -263,7 +265,8 @@ function getDailyTip() {
   
   if (phaseArticles.length === 0) phaseArticles = HEALTH_ARTICLES;
   
-  var dayOfYear = new Date().getDay();
+  var now = new Date();
+  var dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000); /* avant : getDay() = jour de la semaine */
   var index = dayOfYear % phaseArticles.length;
   return phaseArticles[index];
 }

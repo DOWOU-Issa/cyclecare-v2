@@ -41,6 +41,7 @@ function renderAuth() {
 }
 
 function toggleAuthMode(mode) {
+  if (mode !== 'reset-confirm') App.state.recovery = false;
   if (mode) {
     App.state.authMode = mode;
   } else {
@@ -50,11 +51,13 @@ function toggleAuthMode(mode) {
 }
 
 function setAuthLoading(on) {
-  var btn=document.getElementById('auth-btn'); if(!btn) return;
+  /* Fonctionne pour les 3 écrans : connexion, mot de passe oublié, nouveau mot de passe */
+  var btn=document.getElementById('auth-btn')||document.getElementById('reset-btn')||document.getElementById('reset-confirm-btn');
+  if(!btn) return;
+  if(on && !btn.dataset.label) btn.dataset.label=btn.innerHTML;
   btn.disabled=on;
   btn.innerHTML=on?'<i class="ti ti-loader-2" style="animation:spin .8s linear infinite" aria-hidden="true"></i> Chargement...'
-    :('<i class="ti ti-'+(App.state.authMode==='login'?'login':'user-plus')+'" aria-hidden="true"></i> '
-      +(App.state.authMode==='login'?'Se connecter':'Créer mon compte'));
+    :(btn.dataset.label||btn.innerHTML);
 }
 
 function showAuthErr(msg) { var e=document.getElementById('auth-err'); if(e){e.textContent=msg;e.style.display='block';} }
@@ -100,20 +103,26 @@ function doAuth() {
     db.auth.signUp({email:email,password:pass}).then(function(res){
       clearTimeout(authTimeout);
       if(res.error){showAuthErr(translateAuthError(res.error.message));setAuthLoading(false);return;}
+      /* Confirmation par email activée dans Supabase → pas encore de session :
+         on ne peut pas écrire dans user_data (RLS). On garde le prénom pour
+         la première connexion et on prévient l'utilisatrice. */
+      if(!res.data.session){
+        try { localStorage.setItem('cyclecare_pending_name_'+email, name); } catch(e) {}
+        setAuthLoading(false);
+        App.state.authMode='login'; render();
+        showAuthErr('Compte créé ! Confirmez votre adresse via l\'email reçu, puis connectez-vous.');
+        return;
+      }
       var uid=res.data.user.id;
       var u=newUser(name,email,uid);
-      db.from('user_data').insert({
-        user_id:uid,name:u.name,cycle_len:u.cycleLen,period_dur:u.periodDur,
-        periods:[],rapports:[],symptoms:[],medications:[]
-      }).then(function(){
-        App.data.uid=uid; App.data.users[uid]=u; saveLocal(App.data);
-        /* → onboarding obligatoire pour les nouveaux comptes */
-        App.state.screen='onboarding'; App.state.onboardingStep=1;
-        App.state.syncStatus='ok'; render();
-      }).catch(function(err){
-        showAuthErr('Erreur lors de la création du compte: ' + (err.message || 'Veuillez réessayer.'));
-        setAuthLoading(false);
+      u._dirty=true; /* sera créée côté serveur par syncToSupabase (avec nouvel essai si échec) */
+      App.data.uid=uid; App.data.users[uid]=u; saveLocal(App.data);
+      syncToSupabase().then(function(ok){
+        if(!ok) showToast('Compte créé. Synchronisation en attente — vos données sont gardées sur cet appareil.','warn');
       });
+      /* → onboarding obligatoire pour les nouveaux comptes */
+      App.state.screen='onboarding'; App.state.onboardingStep=1;
+      render();
     }).catch(function(err){
       clearTimeout(authTimeout);
       showAuthErr(translateAuthError(err.message || 'Erreur lors de la création du compte.'));
@@ -123,21 +132,14 @@ function doAuth() {
 }
 
 function onSignedIn(supaUser) {
-  pullFromSupabase(supaUser.id, function(row) {
-    var uid=supaUser.id; var u;
-    if(row) {
-      u={id:uid,name:row.name,email:row.email||supaUser.email,
-         cycleLen:row.cycle_len||28,periodDur:row.period_dur||5,
-         avatarColor:row.avatar_color||'#8b2252',onboardingDone:true,
-         periods:row.periods||[],rapports:row.rapports||[],
-         symptoms:row.symptoms||[],medications:row.medications||[],
-         createdAt:row.created_at?row.created_at.split('T')[0]:todayStr()};
-    } else {
-      u=newUser(supaUser.email.split('@')[0],supaUser.email,uid);
-    }
-    App.data.uid=uid; App.data.users[uid]=u; saveLocal(App.data);
+  /* Même chargement qu'au démarrage : TOUS les champs, et fusion si des
+     modifications locales n'ont pas encore été envoyées. */
+  hydrateUserFromServer(supaUser).then(function(u){
+    if(u && u.darkMode) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
     App.state.screen=needsOnboarding()?'onboarding':'accueil';
-    App.state.onboardingStep=1; App.state.syncStatus='ok'; render();
+    App.state.onboardingStep=1; render();
+    if (typeof Notif !== 'undefined') Notif.rescheduleAll().catch(function(){});
   });
 }
 
@@ -154,8 +156,23 @@ function translateAuthError(msg) {
 }
 
 function logout() {
-  db.auth.signOut().then(function(){
-    App.data.uid=null; saveLocal(App.data);
+  var uid = App.data.uid;
+  var u = getUser();
+  /* 1. Envoyer ce qui n'est pas encore synchronisé */
+  var pending = (u && u._dirty) ? syncToSupabase() : Promise.resolve(true);
+  pending.then(function(){
+    var cur = App.data.users[uid];
+    if (cur && cur._dirty &&
+        !confirm('Certaines données ne sont pas encore synchronisées et seront perdues sur cet appareil. Se déconnecter quand même ?')) {
+      return;
+    }
+    /* 2. Ne pas laisser les données de santé sur l'appareil après déconnexion */
+    delete App.data.users[uid];
+    App.data.uid = null; saveLocal(App.data);
+    document.body.classList.remove('dark-mode');
+    if (typeof Notif !== 'undefined' && Notif.cancelAll) Notif.cancelAll().catch(function(){});
+    return Promise.resolve(db.auth.signOut()).catch(function(){ /* hors ligne : la session locale est quand même oubliée */ });
+  }).then(function(){
     App.state.screen='auth'; App.state.authMode='login'; closeModal(); render();
   });
 }
@@ -214,7 +231,7 @@ function requestPasswordReset() {
   }, 30000);
   
   db.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href
+    redirectTo: getAuthRedirectUrl()
   }).then(function(res){
     clearTimeout(resetTimeout);
     if(res.error){
@@ -229,6 +246,19 @@ function requestPasswordReset() {
     showAuthErr(translateAuthError(err.message || 'Erreur lors de la demande de réinitialisation.'));
     setAuthLoading(false);
   });
+}
+
+/* URL de retour des emails Supabase. Sous Electron (file://) ou Capacitor,
+   l'adresse locale n'est pas ouvrable depuis un email → on renvoie vers la
+   version web. ⚠ Ajouter cette URL dans Supabase > Authentication >
+   URL Configuration > Redirect URLs. */
+var WEB_APP_URL = 'https://dowou-issa.github.io/cyclecare-v2/';
+function getAuthRedirectUrl() {
+  var loc = window.location;
+  if (/^https?:$/.test(loc.protocol) && !/localhost|capacitor/.test(loc.hostname)) {
+    return loc.origin + loc.pathname;
+  }
+  return WEB_APP_URL;
 }
 
 function confirmPasswordReset() {
@@ -260,10 +290,17 @@ function confirmPasswordReset() {
       setAuthLoading(false);
       return;
     }
-    showAuthErr('Mot de passe mis à jour avec succès ! Vous pouvez maintenant vous connecter.');
+    showAuthErr('Mot de passe mis à jour avec succès !');
     setTimeout(function(){
-      toggleAuthMode('login');
-    }, 2000);
+      App.state.recovery = false;
+      App.state.authMode = 'login';
+      /* Nettoyer l'URL (#access_token=…&type=recovery) */
+      try { history.replaceState(null, '', window.location.pathname); } catch(e) {}
+      /* La session de récupération est active : on ouvre directement l'app */
+      db.auth.getUser().then(function(r){
+        if (r && r.data && r.data.user) onSignedIn(r.data.user); else render();
+      }).catch(function(){ render(); });
+    }, 1500);
   }).catch(function(err){
     clearTimeout(resetTimeout);
     showAuthErr(translateAuthError(err.message || 'Erreur lors de la mise à jour du mot de passe.'));
@@ -383,7 +420,7 @@ function renderChangeEmail() {
     +'<div class="modal-body">'
     +'<div id="change-email-err" class="err-box" role="alert"></div>'
     +'<div class="form-grp"><label class="lbl">Email actuel</label>'
-    +'<input class="inp" type="email" id="current-email" value="'+(u.email||'')+'" disabled/></div>'
+    +'<input class="inp" type="email" id="current-email" value="'+esc(u.email||'')+'" disabled/></div>'
     +'<div class="form-grp"><label class="lbl" for="new-email">Nouvel email</label>'
     +'<input class="inp" type="email" id="new-email" placeholder="nouveau@email.com" autocomplete="email"/></div>'
     +'<div class="form-grp"><label class="lbl" for="email-pass">Mot de passe actuel</label>'
@@ -432,14 +469,8 @@ function doChangeEmail() {
         return;
       }
       
-      // Mettre à jour les données locales
-      u.email = newEmail;
-      saveLocal(App.data);
-
-      // Synchroniser avec Supabase
-      syncToSupabase().catch(function(err){
-        console.log('Erreur de sync email:', err);
-      });
+      // Mettre à jour les données locales (+ sync Supabase via updateUser)
+      updateUser(function(x){ x.email = newEmail; return x; });
 
       showChangeEmailErr('Email changé avec succès ! Un email de confirmation a été envoyé à ' + newEmail);
       setTimeout(function(){

@@ -12,6 +12,15 @@ const path = require('path');
 let mainWindow;
 let tray;
 
+function isSafeExternalUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' || u.protocol === 'mailto:';
+  } catch (e) {
+    return false;
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width:  1100,
@@ -31,6 +40,7 @@ function createWindow() {
       // Assurer la connectivité réseau pour Supabase
       webSecurity: true,
       allowRunningInsecureContent: false,
+      sandbox: true,               // le code web n'a aucun accès à Node/Windows
     },
     show: false,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -42,8 +52,9 @@ function createWindow() {
     closable: true,
   });
 
-  /* Charger l'application web */
-  mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
+  /* Charger l'application web — MÊME source que le web et l'APK (dossier www/) */
+  const APP_INDEX = path.join(__dirname, '..', 'www', 'index.html');
+  mainWindow.loadFile(APP_INDEX);
 
   /* Activer le zoom et le scroll après chargement */
   mainWindow.webContents.on('did-finish-load', () => {
@@ -60,15 +71,25 @@ function createWindow() {
   /* Afficher la fenêtre seulement quand elle est prête */
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
-  /* Ouvrir les liens externes dans le navigateur système */
+  /* Ouvrir les liens externes dans le navigateur système — uniquement
+     https / mailto (jamais file:, smb:, protocoles personnalisés…) */
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (isSafeExternalUrl(url)) shell.openExternal(url);
     return { action: 'deny' };
+  });
+
+  /* Interdire à la fenêtre de naviguer ailleurs que dans l'app */
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith('file://')) {
+      event.preventDefault();
+      if (isSafeExternalUrl(url)) shell.openExternal(url);
+    }
   });
   
   /* Minimiser au lieu de fermer (pour le tray icon) */
   mainWindow.on('close', (event) => {
-    if (!app.isQuitting) {
+    /* Sans icône de barre des tâches, cacher la fenêtre la rendrait inaccessible */
+    if (!app.isQuitting && tray) {
       event.preventDefault();
       mainWindow.hide();
       if (tray) {
@@ -86,6 +107,8 @@ function createTray() {
   // Créer une icône simple (remplacer par votre propre icône)
   const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
   const trayIcon = nativeImage.createFromPath(iconPath);
+  /* Pas d'icône (dossier assets/ absent) → pas de tray : la croix ferme l'app */
+  if (trayIcon.isEmpty()) return;
   
   tray = new Tray(trayIcon.resize({ width: 16, height: 16 }));
   
@@ -106,7 +129,7 @@ function createTray() {
         if (mainWindow) {
           mainWindow.show();
           mainWindow.webContents.executeJavaScript(`
-            if (typeof navigateTo === 'function') navigateTo('journal');
+            if (typeof go === 'function') go('journal');
           `);
         }
       }
@@ -117,7 +140,7 @@ function createTray() {
         if (mainWindow) {
           mainWindow.show();
           mainWindow.webContents.executeJavaScript(`
-            if (typeof navigateTo === 'function') navigateTo('calendrier');
+            if (typeof go === 'function') go('calendrier');
           `);
         }
       }
@@ -167,7 +190,8 @@ const menuTemplate = [
     label: 'Affichage',
     submenu: [
       { role: 'reload',         label: 'Actualiser' },
-      { role: 'toggleDevTools', label: 'Outils développeur' },
+      // Outils développeur seulement en développement (npm start), pas dans l'exe
+      ...(app.isPackaged ? [] : [{ role: 'toggleDevTools', label: 'Outils développeur' }]),
       { type: 'separator' },
       { role: 'resetZoom',      label: 'Zoom normal' },
       { role: 'zoomIn',         label: 'Zoom +' },
@@ -185,7 +209,7 @@ const menuTemplate = [
           if (mainWindow) {
             mainWindow.show();
             mainWindow.webContents.executeJavaScript(`
-              if (typeof navigateTo === 'function') navigateTo('settings');
+              if (typeof go === 'function') go('parametres');
             `);
           }
         }

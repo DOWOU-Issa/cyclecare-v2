@@ -54,9 +54,8 @@ function renderRapportsTab(){
   if(!raps.length) return html+'<div class="card">'+empty('Aucun rapport enregistré.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   raps.slice(0,15).forEach(function(r){
-    var ri=(u.rapports||[]).findIndex(function(x){return x.date===r.date&&x.protected===r.protected;});
     // Utiliser la zone historique cohérente pour chaque rapport
-    var zone= u && u.periods && u.periods.length ? getZoneForDate(r.date, u.periods, cl) : (lp?getZone(r.date,lp.start,cl):null);
+    var zone= u && u.periods && u.periods.length ? getZoneForDate(r.date, u.periods, cl) : (lp?getZone(r.date,lp.start,cl,getEstimatedPeriodDur()):null);
     var zi=zone?ZONE_INFO[zone]:null;
     var hasMed=(u.medications||[]).some(function(m){var d=diffDays(r.date,m.date);return d>=0&&d<=5&&(m.type==='norLevo'||m.type==='ellaOne');});
     html+='<div class="list-item"><div class="item-icon '+(r.protected?'item-icon-green':'item-icon-red')+'">'
@@ -68,8 +67,8 @@ function renderRapportsTab(){
       +(hasMed?'<span class="zone-chip" style="background:#eeebff;color:#4a3cab;border-color:#c5bff5;">Contraceptif pris</span>':'')
       +'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editRapportEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delRapport('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editRapportEntry(\''+esc(r.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delRapport(\''+esc(r.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -83,13 +82,12 @@ function renderSymptomesTab(){
   if(!syms.length) return html+'<div class="card">'+empty('Aucun symptôme enregistré.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   syms.slice(0,12).forEach(function(s){
-    var ri=(u.symptoms||[]).findIndex(function(x){return x.date===s.date;});
     html+='<div class="list-item"><div class="item-icon item-icon-amber"><i class="ti ti-mood-sad" aria-hidden="true"></i></div>'
       +'<div style="flex:1;"><div class="item-label">'+fmtDate(s.date)+'</div>'
       +'<div class="item-sub">'+esc((s.items||[]).join(', '))+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editSymptomEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delSymptom('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editSymptomEntry(\''+esc(s.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delSymptom(\''+esc(s.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -103,15 +101,14 @@ function renderMoodTab(){
   if(!moods.length) return html+'<div class="card">'+empty('Aucune humeur enregistrée.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   moods.slice(0,12).forEach(function(m){
-    var ri=(u.moods||[]).findIndex(function(x){return x.date===m.date;});
     var moodInfo=MOOD_OPTIONS.find(function(opt){return opt.val===m.value;})||{};
     html+='<div class="list-item"><div class="item-icon" style="background:'+moodInfo.color+';width:38px;height:38px;border-radius:9px;">'
       +'<i class="ti '+moodInfo.icon+'" aria-hidden="true"></i></div>'
       +'<div style="flex:1;"><div class="item-label">'+fmtDate(m.date)+'</div>'
       +'<div class="item-sub">'+moodInfo.lbl+' ('+m.value+'/10)'+(m.notes?' · '+esc(m.notes):'')+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editMoodEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delMood('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editMoodEntry(\''+esc(m.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delMood(\''+esc(m.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -125,15 +122,14 @@ function renderEnergyTab(){
   if(!energies.length) return html+'<div class="card">'+empty('Aucune énergie enregistrée.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   energies.slice(0,12).forEach(function(e){
-    var ri=(u.energies||[]).findIndex(function(x){return x.date===e.date;});
     var energyInfo=ENERGY_OPTIONS.find(function(opt){return opt.val===e.value;})||{};
     html+='<div class="list-item"><div class="item-icon" style="background:'+energyInfo.color+';width:38px;height:38px;border-radius:9px;">'
       +'<i class="ti '+energyInfo.icon+'" aria-hidden="true"></i></div>'
       +'<div style="flex:1;"><div class="item-label">'+fmtDate(e.date)+'</div>'
       +'<div class="item-sub">'+energyInfo.lbl+' ('+e.value+'/8)'+(e.notes?' · '+esc(e.notes):'')+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editEnergyEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delEnergy('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editEnergyEntry(\''+esc(e.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delEnergy(\''+esc(e.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -151,15 +147,14 @@ function renderTempTab(){
   if(!temps.length) return html+'<div class="card">'+empty('Aucune température enregistrée.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   temps.slice(0,12).forEach(function(t){
-    var ri=(u.temperatures||[]).findIndex(function(x){return x.date===t.date;});
     var tempColor = t.value > 37 ? '#e74c3c' : t.value > 36.5 ? '#f39c12' : '#27ae60';
     html+='<div class="list-item"><div class="item-icon" style="background:'+tempColor+';width:38px;height:38px;border-radius:9px;">'
       +'<i class="ti ti-thermometer" aria-hidden="true"></i></div>'
       +'<div style="flex:1;"><div class="item-label">'+fmtDate(t.date)+' · '+t.time+'</div>'
       +'<div class="item-sub">'+t.value+'°C'+(t.notes?' · '+esc(t.notes):'')+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editTempEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delTemp('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editTempEntry(\''+esc(t.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delTemp(\''+esc(t.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -173,14 +168,13 @@ function renderWeightTab(){
   if(!weights.length) return html+'<div class="card">'+empty('Aucun poids enregistré.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   weights.slice(0,12).forEach(function(w){
-    var ri=(u.weights||[]).findIndex(function(x){return x.date===w.date;});
     html+='<div class="list-item"><div class="item-icon item-icon-purple" style="width:38px;height:38px;border-radius:9px;">'
       +'<i class="ti ti-scale" aria-hidden="true"></i></div>'
       +'<div style="flex:1;"><div class="item-label">'+fmtDate(w.date)+'</div>'
       +'<div class="item-sub">'+w.value+' kg'+(w.notes?' · '+esc(w.notes):'')+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editWeightEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delWeight('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editWeightEntry(\''+esc(w.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delWeight(\''+esc(w.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -194,7 +188,6 @@ function renderThoughtTab(){
   if(!thoughts.length) return html+'<div class="card">'+empty('Aucune pensée enregistrée.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   thoughts.slice(0,12).forEach(function(th){
-    var ri=(u.thoughts||[]).findIndex(function(x){return x.date===th.date;});
     html+='<div class="list-item" style="padding:12px 0;"><div class="item-icon item-icon-amber" style="width:38px;height:38px;border-radius:9px;">'
       +'<i class="ti ti-notebook" aria-hidden="true"></i></div>'
       +'<div style="flex:1;"><div class="item-label">'+fmtDate(th.date)+'</div>'
@@ -202,8 +195,8 @@ function renderThoughtTab(){
       +(th.mood?'<div style="font-size:12px;color:var(--text-3);margin-top:4px;">Humeur: '+esc(th.mood)+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editThoughtEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delThought('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editThoughtEntry(\''+esc(th.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delThought(\''+esc(th.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -221,7 +214,6 @@ function renderDischargeTab(){
   if(!discharges.length) return html+'<div class="card">'+empty('Aucune perte enregistrée.')+'</div>';
   html+='<div class="card" style="padding:4px 14px;">';
   discharges.slice(0,12).forEach(function(d){
-    var ri=(u.discharge||[]).findIndex(function(x){return x.date===d.date;});
     var typeInfo=DISCHARGE_OPTIONS.find(function(opt){return opt.val===d.type;})||{};
     var amountInfo=DISCHARGE_AMOUNT_OPTIONS.find(function(opt){return opt.val===d.amount;})||{};
     var dischargeColor = d.type==='eggwhite'?'#27ae60':d.type==='clear'?'#3498db':'#95a5a6';
@@ -230,8 +222,8 @@ function renderDischargeTab(){
       +'<div style="flex:1;"><div class="item-label">'+fmtDate(d.date)+'</div>'
       +'<div class="item-sub">'+typeInfo.lbl+' · '+amountInfo.lbl+(d.notes?' · '+esc(d.notes):'')+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editDischargeEntry('+ri+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delDischarge('+ri+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editDischargeEntry(\''+esc(d.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delDischarge(\''+esc(d.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -248,76 +240,28 @@ function editPeriodEntry(startStr){
   if(!p) return;
   openModal('logPeriod', p);
 }
-function delRapport(i){updateUser(function(u){u.rapports.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editRapportEntry(i){
-  var u=getUser();
-  var r=(u.rapports||[])[i];
-  if(!r) return;
-  openModal('logRapport', r);
-}
-function delSymptom(i){updateUser(function(u){u.symptoms.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editSymptomEntry(i){
-  var u=getUser();
-  var s=(u.symptoms||[])[i];
-  if(!s) return;
-  openModal('logSymptom', s);
-}
-function delMed(i){updateUser(function(u){u.medications.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editMedEntry(i){
-  var u=getUser();
-  var m=(u.medications||[])[i];
-  if(!m) return;
-  openModal('logMed', m);
-}
-function delMood(i){updateUser(function(u){u.moods.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editMoodEntry(i){
-  var u=getUser();
-  var m=(u.moods||[])[i];
-  if(!m) return;
-  openModal('logMood', m);
-}
-function delEnergy(i){updateUser(function(u){u.energies.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editEnergyEntry(i){
-  var u=getUser();
-  var e=(u.energies||[])[i];
-  if(!e) return;
-  openModal('logEnergy', e);
-}
-function delTemp(i){updateUser(function(u){u.temperatures.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editTempEntry(i){
-  var u=getUser();
-  var t=(u.temperatures||[])[i];
-  if(!t) return;
-  openModal('logTemp', t);
-}
-function delWeight(i){updateUser(function(u){u.weights.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editWeightEntry(i){
-  var u=getUser();
-  var w=(u.weights||[])[i];
-  if(!w) return;
-  openModal('logWeight', w);
-}
-function delThought(i){updateUser(function(u){u.thoughts.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editThoughtEntry(i){
-  var u=getUser();
-  var th=(u.thoughts||[])[i];
-  if(!th) return;
-  openModal('logThought', th);
-}
-function delDischarge(i){updateUser(function(u){u.discharge.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
-function editDischargeEntry(i){
-  var u=getUser();
-  var d=(u.discharge||[])[i];
-  if(!d) return;
-  openModal('logDischarge', d);
-}
-function editEnergyEntry(i){
-  var u=getUser();
-  var e=(u.energies||[])[i];
-  if(!e) return;
-  openModal('logEnergy', e);
-}
-function delEnergy(i){updateUser(function(u){u.energies.splice(i,1);return u;});showToast('Entrée supprimée.');render();}
+/* Les entrées sont identifiées par un id unique (voir ensureIds dans storage.js) :
+   deux entrées le même jour ne se confondent plus. */
+function delEntryById(list,id){updateUser(function(u){u[list]=(u[list]||[]).filter(function(x){return x.id!==id;});return u;});showToast('Entrée supprimée.');render();}
+function editEntryById(list,id,modal){var u=getUser();var e=(u[list]||[]).find(function(x){return x.id===id;});if(!e) return;openModal(modal,e);}
+function delRapport(id){delEntryById('rapports',id);}
+function editRapportEntry(id){editEntryById('rapports',id,'logRapport');}
+function delSymptom(id){delEntryById('symptoms',id);}
+function editSymptomEntry(id){editEntryById('symptoms',id,'logSymptom');}
+function delMed(id){delEntryById('medications',id);}
+function editMedEntry(id){editEntryById('medications',id,'logMed');}
+function delMood(id){delEntryById('moods',id);}
+function editMoodEntry(id){editEntryById('moods',id,'logMood');}
+function delEnergy(id){delEntryById('energies',id);}
+function editEnergyEntry(id){editEntryById('energies',id,'logEnergy');}
+function delTemp(id){delEntryById('temperatures',id);}
+function editTempEntry(id){editEntryById('temperatures',id,'logTemp');}
+function delWeight(id){delEntryById('weights',id);}
+function editWeightEntry(id){editEntryById('weights',id,'logWeight');}
+function delThought(id){delEntryById('thoughts',id);}
+function editThoughtEntry(id){editEntryById('thoughts',id,'logThought');}
+function delDischarge(id){delEntryById('discharge',id);}
+function editDischargeEntry(id){editEntryById('discharge',id,'logDischarge');}
 
 /* =============================================
    js/medications.js
@@ -349,7 +293,6 @@ function renderMedicaments(){
   meds.slice(0,10).forEach(function(m){
     var info=MEDS_DATA[m.type]||{};
     var pred=lp&&info.delayDays>0?addDays(addDays(lp.start,cl),info.delayDays):null;
-    var mi=(u.medications||[]).findIndex(function(x){return x.date===m.date;});
     html+='<div class="list-item"><div class="item-icon '+(info.iconBg||'item-icon-purple')+'" style="width:38px;height:38px;border-radius:9px;">'
       +'<i class="ti ti-pill" aria-hidden="true"></i></div>'
       +'<div style="flex:1;"><div class="item-label">'+esc(m.name||info.name||m.type)+'</div>'
@@ -357,8 +300,8 @@ function renderMedicaments(){
       +(pred?'<div style="font-size:12px;color:#6c3483;margin-top:3px;">Règles possibles vers le '+fmtShort(pred)+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;">'
-      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editMedEntry('+mi+')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
-      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delMed('+mi+')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-outline btn-icon" onclick="editMedEntry(\''+esc(m.id)+'\')" aria-label="Modifier"><i class="ti ti-pencil" aria-hidden="true"></i></button>'
+      +'<button class="btn btn-sm btn-danger btn-icon" onclick="delMed(\''+esc(m.id)+'\')" aria-label="Supprimer"><i class="ti ti-trash" aria-hidden="true"></i></button>'
       +'</div></div>';
   });
   return html+'</div>';
@@ -393,7 +336,7 @@ function renderParametres(){
   var u=getUser();var cl=(u&&u.cycleLen)||28;var pd=(u&&u.periodDur)||5;
   var init=((u&&u.name)||'?').charAt(0).toUpperCase();
 
-  var html='<div class="profile-card"><div class="profile-avatar">'+init+'</div>'
+  var html='<div class="profile-card"><div class="profile-avatar">'+esc(init)+'</div>'
     +'<div><div class="profile-name">'+esc((u&&u.name)||'')+'</div>'
     +'<div class="profile-email">'+esc((u&&u.email)||'')+'</div>'
     +'<div class="profile-since">Membre depuis '+fmtShort((u&&u.createdAt)||todayStr())
@@ -623,23 +566,13 @@ async function toggleNotifications(enabled){
     }
   }
   updateUser(function(u){ u.notifPrefs = u.notifPrefs||{}; u.notifPrefs.enabled = enabled; return u; });
-  // Sauvegarder localement d'abord
-  saveLocal(App.data);
-  // Synchroniser avec Supabase en arrière-plan (non bloquant)
-  syncToSupabase().catch(function(err){
-    console.log('Sync en arrière-plan :', err);
-  });
+  /* updateUser sauvegarde en local ET synchronise (plus besoin de le refaire ici) */
   showToast(enabled ? 'Notifications activées.' : 'Notifications désactivées.');
   render();
 }
 function togglePillReminder(enabled){
   updateUser(function(u){ u.notifPrefs = u.notifPrefs||{}; u.notifPrefs.pillReminder = enabled; return u; });
-  // Sauvegarder localement d'abord
-  saveLocal(App.data);
-  // Synchroniser avec Supabase en arrière-plan (non bloquant)
-  syncToSupabase().catch(function(err){
-    console.log('Sync en arrière-plan :', err);
-  });
+  /* updateUser sauvegarde en local ET synchronise (plus besoin de le refaire ici) */
   render();
 }
 function savePillHour(h){
@@ -691,73 +624,78 @@ function exportData(){
   showToast('Données exportées.');
 }
 
+/* Ligne CSV correcte : champs entre guillemets, guillemets doublés.
+   (avant : échappement HTML → "&amp;" dans Excel, et une virgule dans une
+   note décalait les colonnes) */
+function csvCell(v){ v=(v==null?'':String(v)); return '"'+v.replace(/"/g,'""')+'"'; }
+function csvRow(cells){ return cells.map(csvCell).join(',')+'\r\n'; }
 function exportCSV(){
   var u=getUser();
   if(!u){showToast('Aucune donnée à exporter.','err');return;}
   
-  var csv='Date,Type,Détails,Notes\n';
+  var csv=csvRow(['Date','Type','Détails','Notes']);
   
   /* Exporter les périodes */
   (u.periods||[]).forEach(function(p){
     var details='Début: '+p.start+(p.end?' | Fin: '+p.end:'')+(p.flow?' | Flux: '+p.flow:'');
-    csv+=p.start+',Période,'+esc(details)+','+esc(p.notes||'')+'\n';
+    csv+=csvRow([p.start, 'Période', details, p.notes||'']);
   });
   
   /* Exporter les rapports */
   (u.rapports||[]).forEach(function(r){
     var details=r.protected?'Protégé':'Non protégé';
-    csv+=r.date+',Rapport,'+details+','+'\n';
+    csv+=csvRow([r.date, 'Rapport', details, '']);
   });
   
   /* Exporter les symptômes */
   (u.symptoms||[]).forEach(function(s){
     var details=(s.items||[]).join('; ');
-    csv+=s.date+',Symptôme,'+esc(details)+','+esc(s.notes||'')+'\n';
+    csv+=csvRow([s.date, 'Symptôme', details, s.notes||'']);
   });
   
   /* Exporter les médicaments */
   (u.medications||[]).forEach(function(m){
     var details=m.name||m.type;
-    csv+=m.date+',Médicament,'+esc(details)+','+esc(m.notes||'')+'\n';
+    csv+=csvRow([m.date, 'Médicament', details, m.notes||'']);
   });
   
   /* Exporter l'humeur */
   (u.moods||[]).forEach(function(m){
     var moodInfo=MOOD_OPTIONS.find(function(opt){return opt.val===m.value;})||{};
     var details=moodInfo.lbl+' ('+m.value+'/10)';
-    csv+=m.date+',Humeur,'+esc(details)+','+esc(m.notes||'')+'\n';
+    csv+=csvRow([m.date, 'Humeur', details, m.notes||'']);
   });
   
   /* Exporter l'énergie */
   (u.energies||[]).forEach(function(e){
     var energyInfo=ENERGY_OPTIONS.find(function(opt){return opt.val===e.value;})||{};
     var details=energyInfo.lbl+' ('+e.value+'/8)';
-    csv+=e.date+',Énergie,'+esc(details)+','+esc(e.notes||'')+'\n';
+    csv+=csvRow([e.date, 'Énergie', details, e.notes||'']);
   });
   
   /* Exporter la température */
   (u.temperatures||[]).forEach(function(t){
-    csv+=t.date+',Température,'+t.value+'°C à '+t.time+','+esc(t.notes||'')+'\n';
+    csv+=csvRow([t.date, 'Température', t.value+'°C à '+t.time, t.notes||'']);
   });
   
   /* Exporter le poids */
   (u.weights||[]).forEach(function(w){
-    csv+=w.date+',Poids,'+w.value+' kg,'+esc(w.notes||'')+'\n';
+    csv+=csvRow([w.date, 'Poids', w.value+' kg', w.notes||'']);
   });
   
   /* Exporter les pensées */
   (u.thoughts||[]).forEach(function(th){
-    csv+=th.date+',Pensée,'+esc(th.text.substring(0,50))+'...,'+esc(th.mood||'')+'\n';
+    csv+=csvRow([th.date, 'Pensée', (th.text||'').substring(0,50)+((th.text||'').length>50?'...':''), th.mood||'']);
   });
   
   /* Exporter les pertes */
   (u.discharge||[]).forEach(function(d){
     var typeInfo=DISCHARGE_OPTIONS.find(function(opt){return opt.val===d.type;})||{};
     var amountInfo=DISCHARGE_AMOUNT_OPTIONS.find(function(opt){return opt.val===d.amount;})||{};
-    csv+=d.date+',Pertes,'+typeInfo.lbl+' - '+amountInfo.lbl+','+esc(d.notes||'')+'\n';
+    csv+=csvRow([d.date, 'Pertes', typeInfo.lbl+' - '+amountInfo.lbl, d.notes||'']);
   });
   
-  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}); /* BOM : accents OK dans Excel */
   var url=URL.createObjectURL(blob);var a=document.createElement('a');
   a.href=url;a.download='cyclecare-export-'+todayStr()+'.csv';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
@@ -828,7 +766,7 @@ function computeSymptomTrends() {
     if (cycleDay === null) return;
 
     // Utiliser la zone historique cohérente pour chaque symptôme
-    var zone = u && u.periods && u.periods.length ? getZoneForDate(s.date, u.periods, cl) : (lp?getZone(s.date,lp.start,cl):null);
+    var zone = u && u.periods && u.periods.length ? getZoneForDate(s.date, u.periods, cl) : (lp?getZone(s.date,lp.start,cl,getEstimatedPeriodDur()):null);
     if (!zone) return;
     
     (s.items || []).forEach(function(symptom) {
@@ -901,7 +839,7 @@ function generateMonthlyReport() {
   htmlReport += '<div class="section">';
   htmlReport += '<h2>Informations du cycle</h2>';
   htmlReport += '<div class="info-grid">';
-  htmlReport += '<div class="info-item"><strong>Utilisatrice :</strong> ' + (u.name || 'N/A') + '</div>';
+  htmlReport += '<div class="info-item"><strong>Utilisatrice :</strong> ' + esc(u.name || 'N/A') + '</div>';
   htmlReport += '<div class="info-item"><strong>Cycle :</strong> ' + cl + ' jours</div>';
   htmlReport += '<div class="info-item"><strong>Durée des règles :</strong> ' + u.periodDur + ' jours</div>';
   htmlReport += '<div class="info-item"><strong>Mois :</strong> ' + currentMonth + '</div>';
@@ -916,8 +854,8 @@ function generateMonthlyReport() {
     periodsThisMonth.forEach(function(p) {
       htmlReport += '<li><span class="date">' + fmtDate(p.start) + '</span>';
       if (p.end) htmlReport += ' → ' + fmtDate(p.end) + ' (' + (diffDays(p.start, p.end) + 1) + ' jours)';
-      if (p.flow) htmlReport += '<br><em>Flux : ' + p.flow + '</em>';
-      if (p.notes) htmlReport += '<br><em>Notes : ' + p.notes + '</em>';
+      if (p.flow) htmlReport += '<br><em>Flux : ' + esc(p.flow) + '</em>';
+      if (p.notes) htmlReport += '<br><em>Notes : ' + esc(p.notes) + '</em>';
       htmlReport += '</li>';
     });
     htmlReport += '</ul>';
@@ -933,8 +871,8 @@ function generateMonthlyReport() {
   if (symptomsThisMonth.length) {
     htmlReport += '<ul class="data-list">';
     symptomsThisMonth.forEach(function(s) {
-      htmlReport += '<li><span class="date">' + fmtDate(s.date) + '</span> : ' + (s.items || []).join(', ');
-      if (s.notes) htmlReport += '<br><em>' + s.notes + '</em>';
+      htmlReport += '<li><span class="date">' + fmtDate(s.date) + '</span> : ' + esc((s.items || []).join(', '));
+      if (s.notes) htmlReport += '<br><em>' + esc(s.notes) + '</em>';
       htmlReport += '</li>';
     });
     htmlReport += '</ul>';
@@ -953,8 +891,8 @@ function generateMonthlyReport() {
     htmlReport += '<h3>Humeur</h3><ul class="data-list">';
     moodsThisMonth.forEach(function(m) {
       var moodInfo = MOOD_OPTIONS.find(function(opt){return opt.val===m.value;})||{};
-      htmlReport += '<li><span class="date">' + fmtDate(m.date) + '</span> : ' + moodInfo.lbl + ' (' + m.value + '/10)';
-      if (m.notes) htmlReport += '<br><em>' + m.notes + '</em>';
+      htmlReport += '<li><span class="date">' + fmtDate(m.date) + '</span> : ' + moodInfo.lbl + ' (' + esc(m.value) + '/10)';
+      if (m.notes) htmlReport += '<br><em>' + esc(m.notes) + '</em>';
       htmlReport += '</li>';
     });
     htmlReport += '</ul>';
@@ -964,8 +902,8 @@ function generateMonthlyReport() {
     htmlReport += '<h3>Énergie</h3><ul class="data-list">';
     energiesThisMonth.forEach(function(e) {
       var energyInfo = ENERGY_OPTIONS.find(function(opt){return opt.val===e.value;})||{};
-      htmlReport += '<li><span class="date">' + fmtDate(e.date) + '</span> : ' + energyInfo.lbl + ' (' + e.value + '/8)';
-      if (e.notes) htmlReport += '<br><em>' + e.notes + '</em>';
+      htmlReport += '<li><span class="date">' + fmtDate(e.date) + '</span> : ' + energyInfo.lbl + ' (' + esc(e.value) + '/8)';
+      if (e.notes) htmlReport += '<br><em>' + esc(e.notes) + '</em>';
       htmlReport += '</li>';
     });
     htmlReport += '</ul>';
@@ -985,8 +923,8 @@ function generateMonthlyReport() {
   if (tempsThisMonth.length) {
     htmlReport += '<h3>Température basale</h3><ul class="data-list">';
     tempsThisMonth.forEach(function(t) {
-      htmlReport += '<li><span class="date">' + fmtDate(t.date) + '</span> (' + t.time + ') : ' + t.value + '°C';
-      if (t.notes) htmlReport += '<br><em>' + t.notes + '</em>';
+      htmlReport += '<li><span class="date">' + fmtDate(t.date) + '</span> (' + esc(t.time) + ') : ' + esc(t.value) + '°C';
+      if (t.notes) htmlReport += '<br><em>' + esc(t.notes) + '</em>';
       htmlReport += '</li>';
     });
     htmlReport += '</ul>';
@@ -995,8 +933,8 @@ function generateMonthlyReport() {
   if (weightsThisMonth.length) {
     htmlReport += '<h3>Poids</h3><ul class="data-list">';
     weightsThisMonth.forEach(function(w) {
-      htmlReport += '<li><span class="date">' + fmtDate(w.date) + '</span> : ' + w.value + ' kg';
-      if (w.notes) htmlReport += '<br><em>' + w.notes + '</em>';
+      htmlReport += '<li><span class="date">' + fmtDate(w.date) + '</span> : ' + esc(w.value) + ' kg';
+      if (w.notes) htmlReport += '<br><em>' + esc(w.notes) + '</em>';
       htmlReport += '</li>';
     });
     htmlReport += '</ul>';
@@ -1053,21 +991,44 @@ function generateMonthlyReport() {
   // Optionnel : proposer d'imprimer directement
   setTimeout(function() {
     if (confirm('Voulez-vous imprimer ce rapport maintenant en PDF ?')) {
-      var printWindow = window.open('', '_blank');
-      printWindow.document.write(htmlReport);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
+      printHtml(htmlReport);
     }
   }, 500);
 }
 
+/* Impression via un iframe caché : fonctionne aussi sous Electron,
+   où window.open('') est bloqué (la fenêtre valait null → plantage). */
+function printHtml(html){
+  var old=document.getElementById('print-frame'); if(old) old.remove();
+  var f=document.createElement('iframe');
+  f.id='print-frame';
+  f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(f);
+  var d=f.contentWindow.document; d.open(); d.write(html); d.close();
+  setTimeout(function(){
+    try { f.contentWindow.focus(); f.contentWindow.print(); }
+    catch(e){ showToast('Impression impossible sur cet appareil. Ouvrez le fichier téléchargé.','err'); }
+  },300);
+}
+
 function doDeleteAccount(){
-  db.auth.signOut().then(function(){
-    db.from('user_data').delete().eq('user_id',App.data.uid).then(function(){
-      delete App.data.users[App.data.uid];App.data.uid=null;
-      saveLocal(App.data);App.state.screen='auth';closeModal();render();
-    });
+  /* Suppression RÉELLE côté serveur, pendant que la session est encore active :
+     l'edge function "delete-account" (clé service role) efface user_data,
+     bot_usage et le compte d'authentification. On ne se déconnecte qu'après. */
+  var uid=App.data.uid;
+  showToast('Suppression en cours…');
+  db.functions.invoke('delete-account',{ body:{ confirm:true } }).then(function(res){
+    if(res.error) throw res.error;
+    delete App.data.users[uid]; App.data.uid=null; saveLocal(App.data);
+    document.body.classList.remove('dark-mode');
+    if (typeof Notif !== 'undefined' && Notif.cancelAll) Notif.cancelAll().catch(function(){});
+    return Promise.resolve(db.auth.signOut()).catch(function(){});
+  }).then(function(){
+    App.state.screen='auth'; closeModal(); render();
+    showToast('Votre compte et toutes vos données ont été supprimés.');
+  }).catch(function(err){
+    console.warn('Suppression du compte :', err);
+    showToast('Suppression impossible pour le moment. Vérifiez votre connexion et réessayez.','err');
   });
 }
 

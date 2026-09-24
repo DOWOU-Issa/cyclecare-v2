@@ -128,12 +128,25 @@ var Notif = {
   /* ---- Replanifie les rappels NATIFS (Android / Capacitor uniquement).
      Sur le web, il n'y a rien à "planifier" à proprement parler : on se
      contente de vérifier à l'ouverture (checkPendingReminders). ---- */
+  /* Annule tous les rappels natifs déjà planifiés (déconnexion, désactivation…) */
+  cancelAll: async function() {
+    if (!this.isCapacitor()) return;
+    try {
+      var LN = this.nativePlugin();
+      if (LN) await LN.cancel({ notifications: [{ id: 9001 }, { id: 9002 }, { id: 9003 }] });
+    } catch (e) {}
+  },
+
   rescheduleAll: async function() {
-    if (!this.isCapacitor() || !this.isEnabled()) return;
+    if (!this.isCapacitor()) return;
+    /* TOUJOURS annuler d'abord : avant, si les notifications étaient
+       désactivées on sortait avant l'annulation → les rappels déjà
+       planifiés (dont la pilule, quotidienne) continuaient. */
+    await this.cancelAll();
+    if (!this.isEnabled() || !getUser()) return;
     try {
       var LN = this.nativePlugin();
       if (!LN) return;
-      await LN.cancel({ notifications: [{ id: 9001 }, { id: 9002 }, { id: 9003 }] }).catch(function(){});
 
       var u = getUser(); if (!u) return;
       var lp = getLastPeriod(); if (!lp) return;

@@ -11,7 +11,7 @@ function renderAccueil() {
   if (lp) {
     var u = getUser();
     // Pour le dashboard actuel, utiliser la dernière période est logique
-    var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : getZone(today, lp.start, cl);
+    var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : getZone(today, lp.start, cl, getEstimatedPeriodDur());
     var zi   = ZONE_INFO[zone];
     var cd   = getCycleDay(today, lp.start, cl);
     var dup  = getDaysUntilPeriod(lp.start, cl);
@@ -183,7 +183,9 @@ function renderActivePeriodPrompt() {
     + '<div style="display:flex;align-items:flex-start;gap:10px;">'
     + '<i class="ti ti-droplet-filled" style="font-size:20px;color:var(--z-period-tx);flex-shrink:0;margin-top:1px;" aria-hidden="true"></i>'
     + '<div style="flex:1;">'
-    + '<div style="font-size:13px;font-weight:700;color:var(--z-period-tx);">Règles en cours depuis '+daysSince+' jour'+(daysSince>1?'s':'')+'</div>'
+    + '<div style="font-size:13px;font-weight:700;color:var(--z-period-tx);">'
+    + (ap.endEstimated ? 'Confirmez la fin de vos règles' : 'Règles en cours depuis '+daysSince+' jour'+(daysSince>1?'s':''))
+    + '</div>'
     + '<div style="font-size:12px;color:var(--text-2);margin-top:2px;margin-bottom:10px;line-height:1.4;">Début le '+fmtDate(ap.start)+'. Indiquez la date de fin dès qu\'elles s\'arrêtent — qu\'elles durent 3, 4, 5 jours ou plus.</div>'
     + '<button class="btn btn-sm btn-primary" onclick="openModal(\'endPeriod\')"><i class="ti ti-flag-2" aria-hidden="true"></i> Terminer mes règles</button>'
     + '</div></div></div>';
@@ -199,7 +201,7 @@ function renderWeeklyStrip() {
   for (var i = 0; i < 7; i++) {
     var d    = addDays(todayD, i);
     // Utiliser la zone historique cohérente pour chaque jour
-    var z    = u && u.periods && u.periods.length ? getZoneForDate(d, u.periods, cl) : getZone(d, lp.start, cl);
+    var z    = u && u.periods && u.periods.length ? getZoneForDate(d, u.periods, cl) : getZone(d, lp.start, cl, getEstimatedPeriodDur());
     var zi   = ZONE_INFO[z];
     var dObj = parseDateStr(d);
     var wd   = DAYS_FR_SHORT[(dObj.getDay() + 6) % 7];

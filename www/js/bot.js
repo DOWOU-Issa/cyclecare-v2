@@ -30,13 +30,13 @@ function buildSystemPrompt() {
   var u   = getUser();
   var lp  = getLastPeriod();
   var cl  = getCycleLen();
-  var pd  = getPeriodDur();
+  var pd  = getEstimatedPeriodDur() /* durée réellement observée */;
   var today = todayStr();
 
   var ctx = 'Données du cycle de cette utilisatrice :\n';
   if (lp) {
     var u = getUser();
-    var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : getZone(today, lp.start, cl);
+    var zone = u && u.periods && u.periods.length ? getZoneForDate(today, u.periods, cl) : getZone(today, lp.start, cl, getEstimatedPeriodDur());
     var zi   = zone ? ZONE_INFO[zone] : null;
     var cd   = getCycleDay(today, lp.start, cl);
     var dup  = getDaysUntilPeriod(lp.start, cl);
@@ -102,16 +102,11 @@ function buildSystemPrompt() {
     ctx += '- Risque grossesse calculé : ' + risk.level + '\n';
   }
 
-  return 'Tu es l\'assistante santé de CycleCare, spécialisée en santé menstruelle et reproductive.\n\n'
-    + 'RÈGLES :\n'
-    + '1. Réponds UNIQUEMENT aux questions sur : cycle, règles, contraception, symptômes menstruels, ovulation, grossesse, santé gynécologique.\n'
-    + '2. Si le sujet ne concerne pas la santé féminine, dis poliment que tu ne peux pas aider sur ce sujet.\n'
-    + '3. Jamais de diagnostic définitif — informe et recommande un professionnel si besoin.\n'
-    + '4. Français clair, bienveillant, sans jugement. Réponses de 3 à 6 phrases sauf si plus est nécessaire.\n'
-    + '5. Utilise les données du cycle pour personnaliser tes réponses sans les répéter inutilement.\n\n'
-    + ctx + '\n'
-    + 'Prénom : ' + ((u && u.name) || 'utilisatrice') + '\n';
+  /* Les règles de l'assistante sont définies côté serveur. On n'envoie
+     que les données (contexte) de l'utilisatrice. */
+  return ctx + 'Prénom : ' + ((u && u.name) || 'utilisatrice') + '\n';
 }
+function buildBotContext() { return buildSystemPrompt(); }
 
 /* =============================================
    APPEL VERS LA EDGE FUNCTION (proxy sécurisé)
@@ -122,34 +117,18 @@ async function callBotProxy(userMessage) {
   var session    = sessionRes.data && sessionRes.data.session;
   if (!session) throw new Error('NOT_AUTHENTICATED');
 
-  /* Construire l'historique de conversation pour Gemini */
-  var history = [
-    { role: 'user',  parts: [{ text: buildSystemPrompt() }] },
-    { role: 'model', parts: [{ text: 'Bien compris, je suis prête.' }] }
-  ];
-
-  /* Garder les 10 derniers messages (tokens limités sur tier gratuit) */
-  BotState.messages.slice(-10).forEach(function(msg) {
-    history.push({
-      role:  msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.text }]
-    });
+  /* Historique : les messages PRÉCÉDENTS (le message actuel est déjà le
+     dernier de BotState.messages → avant il était envoyé deux fois).
+     Les règles système, generationConfig et safetySettings sont désormais
+     fixés côté serveur (edge function gemini-proxy). */
+  var previous = BotState.messages.slice(0, -1).slice(-10).map(function(msg) {
+    return { role: msg.role === 'user' ? 'user' : 'model', text: msg.text };
   });
-
-  history.push({ role: 'user', parts: [{ text: userMessage }] });
+  previous.push({ role: 'user', text: userMessage });
 
   var body = {
-    contents: history,
-    generationConfig: {
-      temperature:     0.7,
-      maxOutputTokens: 2048,  /* Augmenté à 2048 pour éviter les réponses coupées */
-      topP:            0.9
-    },
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HARASSMENT',       threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
-    ]
+    context:  buildBotContext(),
+    messages: previous
   };
 
   var response = await fetch(getBotProxyUrl(), {
@@ -248,7 +227,7 @@ function getPhaseSpecificSuggestions() {
   if (!lp) return BOT_SUGGESTIONS_BASE;
 
   var u = getUser();
-  var zone = u && u.periods && u.periods.length ? getZoneForDate(todayStr(), u.periods, getCycleLen()) : getZone(todayStr(), lp.start, getCycleLen());
+  var zone = u && u.periods && u.periods.length ? getZoneForDate(todayStr(), u.periods, getCycleLen()) : getZone(todayStr(), lp.start, getCycleLen(), getEstimatedPeriodDur());
   var zoneSuggestions = {
     'period': [
       'Soulager les crampes menstruelles naturellement',
@@ -324,7 +303,7 @@ function renderBot() {
 function renderBotWelcome() {
   var u    = getUser();
   var lp   = getLastPeriod();
-  var zone = u && u.periods && u.periods.length ? getZoneForDate(todayStr(), u.periods, getCycleLen()) : (lp ? getZone(todayStr(), lp.start, getCycleLen()) : null);
+  var zone = u && u.periods && u.periods.length ? getZoneForDate(todayStr(), u.periods, getCycleLen()) : (lp ? getZone(todayStr(), lp.start, getCycleLen(), getEstimatedPeriodDur()) : null);
   var zi   = zone ? ZONE_INFO[zone] : null;
   var suggestions = getPhaseSpecificSuggestions();
 
