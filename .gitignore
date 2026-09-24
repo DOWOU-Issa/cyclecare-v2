@@ -2,17 +2,20 @@
 node_modules/
 package-lock.json
 
-# Dossier de développement JS (doublon de www/js)
-js/
+# Ancien dossier js/ à la RACINE uniquement (le « / » est important :
+# sans lui, www/js/ était ignoré aussi et les nouveaux fichiers n'étaient pas envoyés)
+/js/
+/css/
+/index.html
 
 # Build Electron
 dist-electron/
 
-# Build Android
-android/
+# Build Android : le dossier android/ est maintenant suivi (icônes, module
+# « Enregistrer sous »…). Ses fichiers générés sont exclus par android/.gitignore.
 
 # Capacitor
- capacitor.config.local.json
+capacitor.config.local.json
 
 # Logs
 *.log
@@ -50,3 +53,7 @@ desktop.ini
 .cache/
 deploy/
 supabase-gemini-proxy-index.ts
+
+# Fichiers locaux de Supabase CLI et de Claude
+supabase/.temp/
+Claude outputs/
